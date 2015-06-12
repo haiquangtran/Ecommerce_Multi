@@ -13,8 +13,8 @@ class ECommAlgorithmTest
   val algorithmParams = new ECommAlgorithmParams(
     appName = "test-app",
     unseenOnly = true,
-    seenEvents = List("buy", "view"),
-    similarEvents = List("view"),
+    seenEvents = List("like", "dislike"),
+    similarEvents = List("like"),
     rank = 10,
     numIterations = 20,
     lambda = 0.01,
@@ -39,18 +39,18 @@ class ECommAlgorithmTest
     "i2" -> i2
   )
 
-  val view = Seq(
-    ViewEvent("u0", "i0", 1000010),
-    ViewEvent("u0", "i1", 1000020),
-    ViewEvent("u0", "i1", 1000020),
-    ViewEvent("u1", "i1", 1000030),
-    ViewEvent("u1", "i2", 1000040)
+  val like = Seq(
+    LikeEvent("u0", "i0", 1000010),
+    LikeEvent("u0", "i1", 1000020),
+    LikeEvent("u0", "i1", 1000020),
+    LikeEvent("u1", "i1", 1000030),
+    LikeEvent("u1", "i2", 1000040)
   )
 
-  val buy = Seq(
-    BuyEvent("u0", "i0", 1000020),
-    BuyEvent("u0", "i1", 1000030),
-    BuyEvent("u1", "i1", 1000040)
+  val dislike = Seq(
+    DislikeEvent("u0", "i0", 1000020),
+    DislikeEvent("u0", "i1", 1000030),
+    DislikeEvent("u1", "i1", 1000040)
   )
 
 
@@ -59,8 +59,8 @@ class ECommAlgorithmTest
     val preparedData = new PreparedData(
       users = sc.parallelize(users.toSeq),
       items = sc.parallelize(items.toSeq),
-      viewEvents = sc.parallelize(view.toSeq),
-      buyEvents = sc.parallelize(buy.toSeq)
+      likeEvents = sc.parallelize(like.toSeq),
+      dislikeEvents = sc.parallelize(dislike.toSeq)
     )
 
     val mllibRatings = algorithm.genMLlibRating(
@@ -83,8 +83,8 @@ class ECommAlgorithmTest
     val preparedData = new PreparedData(
       users = sc.parallelize(users.toSeq),
       items = sc.parallelize(items.toSeq),
-      viewEvents = sc.parallelize(view.toSeq),
-      buyEvents = sc.parallelize(buy.toSeq)
+      likeEvents = sc.parallelize(like.toSeq),
+      dislikeEvents = sc.parallelize(dislike.toSeq)
     )
 
     val popCount = algorithm.trainDefault(

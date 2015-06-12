@@ -4,17 +4,17 @@
   "engineFactory": "org.template.ecommercerecommendation.ECommerceRecommendationEngine",
   "datasource": {
     "params" : {
-      "appName": "INVALID_APP_NAME"
+      "appName": "wotm"
     }
   },
   "algorithms": [
     {
       "name": "ecomm",
       "params": {
-        "appName": "INVALID_APP_NAME",
+        "appName": "wotm",
         "unseenOnly": true,
-        "seenEvents": ["buy", "view"],
-        "similarEvents": ["view"],
+        "seenEvents": ["like", "dislike"],
+        "similarEvents": ["like"],
         "rank": 10,
         "numIterations" : 20,
         "lambda": 0.01,

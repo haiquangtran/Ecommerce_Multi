@@ -23,9 +23,12 @@ case class ECommAlgorithmParams(
   unseenOnly: Boolean,
   seenEvents: List[String],
   similarEvents: List[String],
+  // Number of latent features
   rank: Int,
   numIterations: Int,
+  // Regularization parameter for MLlib ALS 
   lambda: Double,
+  // Random seed for ALS. Specify a fixed value if want to have deterministic result
   seed: Option[Long]
 ) extends Params
 
@@ -65,8 +68,8 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
   @transient lazy val logger = Logger[this.type]
 
   def train(sc: SparkContext, data: PreparedData): ECommModel = {
-    require(!data.viewEvents.take(1).isEmpty,
-      s"viewEvents in PreparedData cannot be empty." +
+    require(!data.likeEvents.take(1).isEmpty,
+      s"likeEvents in PreparedData cannot be empty." +
       " Please check if DataSource generates TrainingData" +
       " and Preprator generates PreparedData correctly.")
     require(!data.users.take(1).isEmpty,
@@ -116,6 +119,7 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
     val productFeatures: Map[Int, (Item, Option[Array[Double]])] =
       items.leftOuterJoin(m.productFeatures).collectAsMap.toMap
 
+    // count the number of items being bought for recommendation popular items as default case
     val popularCount = trainDefault(
       userStringIntMap = userStringIntMap,
       itemStringIntMap = itemStringIntMap,
@@ -150,7 +154,7 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
     itemStringIntMap: BiMap[String, Int],
     data: PreparedData): RDD[MLlibRating] = {
 
-    val mllibRatings = data.viewEvents
+    val mllibRatings = data.likeEvents
       .map { r =>
         // Convert user and item String IDs to Int index for MLlib
         val uindex = userStringIntMap.getOrElse(r.user, -1)
@@ -170,15 +174,21 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
         // keep events with valid user and item index
         (u != -1) && (i != -1)
       }
-      .reduceByKey(_ + _) // aggregate all view events of same user-item pair
+      .reduceByKey(_ + _) // aggregate all like events of same user-item pair
       .map { case ((u, i), v) =>
         // MLlibRating requires integer index for user and item
         MLlibRating(u, i, v)
+
+
+        //TODO: Should take into account like events and dislike event ratings here
+
       }
       .cache()
 
     mllibRatings
   }
+
+  // TODO: FIGURE THIS OUT 
 
   /** Train default model.
     * You may customize this function if use different events or
@@ -188,9 +198,9 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
     userStringIntMap: BiMap[String, Int],
     itemStringIntMap: BiMap[String, Int],
     data: PreparedData): Map[Int, Int] = {
-    // count number of buys
+    // count number of dislikes
     // (item index, count)
-    val buyCountsRDD: RDD[(Int, Int)] = data.buyEvents
+    val dislikeCountsRDD: RDD[(Int, Int)] = data.dislikeEvents
       .map { r =>
         // Convert user and item String IDs to Int index
         val uindex = userStringIntMap.getOrElse(r.user, -1)
@@ -213,7 +223,7 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
       .map { case (u, i, v) => (i, 1) } // key is item
       .reduceByKey{ case (a, b) => a + b } // count number of items occurrence
 
-    buyCountsRDD.collectAsMap.toMap
+    dislikeCountsRDD.collectAsMap.toMap
   }
 
   def predict(model: ECommModel, query: Query): PredictedResult = {
@@ -291,6 +301,7 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
   }
 
   /** Generate final blackList based on other constraints */
+  /** Final blacklist = seen items, unavailable items, and blacklist items */
   def genBlackList(query: Query): Set[String] = {
     // if unseenOnly is True, get all seen items
     val seenItems: Set[String] = if (ap.unseenOnly) {
@@ -363,7 +374,7 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
 
   /** Get recent events of the user on items for recommending similar items */
   def getRecentItems(query: Query): Set[String] = {
-    // get latest 10 user view item events
+    // get latest 10 user like item events
     val recentEvents = try {
       LEventStore.findByEntity(
         appName = ap.appName,
