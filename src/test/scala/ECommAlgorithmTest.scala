@@ -116,7 +116,8 @@ class ECommAlgorithmTest
       whiteList = None,
       blackList = Set()
     )
-
+    
+    // Rating is done by the dot product
     val expected = Array((2, 7.5), (0, 5.0))
     top shouldBe expected
   }
