@@ -23,13 +23,10 @@ case class ECommAlgorithmParams(
   unseenOnly: Boolean,
   seenEvents: List[String],
   similarEvents: List[String],
-  // Number of latent features
-  rank: Int,
+  rank: Int, // Number of latent features
   numIterations: Int,
-  // Regularization parameter for MLlib ALS 
-  lambda: Double,
-  // Random seed for ALS. Specify a fixed value if want to have deterministic result
-  seed: Option[Long]
+  lambda: Double,   // Regularization parameter for MLlib ALS 
+  seed: Option[Long]  // Random seed for ALS. Specify a fixed value if want to have deterministic result
 ) extends Params
 
 
@@ -188,8 +185,6 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
     mllibRatings
   }
 
-  // TODO: FIGURE THIS OUT 
-
   /** Train default model.
     * You may customize this function if use different events or
     * need different ways to count "popular" score or return default score for item.
@@ -198,9 +193,9 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
     userStringIntMap: BiMap[String, Int],
     itemStringIntMap: BiMap[String, Int],
     data: PreparedData): Map[Int, Int] = {
-    // count number of dislikes
+    // count number of likes
     // (item index, count)
-    val dislikeCountsRDD: RDD[(Int, Int)] = data.dislikeEvents
+    val likeCountsRDD: RDD[(Int, Int)] = data.likeEvents
       .map { r =>
         // Convert user and item String IDs to Int index
         val uindex = userStringIntMap.getOrElse(r.user, -1)
@@ -223,7 +218,7 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
       .map { case (u, i, v) => (i, 1) } // key is item
       .reduceByKey{ case (a, b) => a + b } // count number of items occurrence
 
-    dislikeCountsRDD.collectAsMap.toMap
+    likeCountsRDD.collectAsMap.toMap
   }
 
   def predict(model: ECommModel, query: Query): PredictedResult = {

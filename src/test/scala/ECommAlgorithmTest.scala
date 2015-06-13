@@ -93,7 +93,7 @@ class ECommAlgorithmTest
       data = preparedData
     )
 
-    val expected = Map(0 -> 1, 1 -> 2)
+    val expected = Map(0 -> 1, 1 -> 3, 2 -> 1)
 
     popCount should contain theSameElementsAs expected
   }
