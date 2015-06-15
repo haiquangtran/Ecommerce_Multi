@@ -101,11 +101,35 @@ class DataSource(val dsp: DataSourceParams)
         }
       }
 
+    val ratingEventsRDD: RDD[RatingEvent] = eventsRDD
+      .map { event =>
+        try {
+          val ratingValue: Double = event.event match {
+            case "like" => 1.0 
+            case "dislike" => -1.00
+            case _ => throw new Exception(s"Unexpected event ${event} is read.")
+          }
+          
+          RatingEvent(
+            user = event.entityId,
+            item = event.targetEntityId.get,
+            rating = ratingValue,
+            t = event.eventTime.getMillis
+          )
+        } catch {
+          case e: Exception =>
+            logger.error(s"Cannot convert ${event} to RatingEvent." +
+              s" Exception: ${e}.")
+            throw e
+        }
+    }
+
     new TrainingData(
       users = usersRDD,
       items = itemsRDD,
       likeEvents = likeEventsRDD,
-      dislikeEvents = dislikeEventsRDD
+      dislikeEvents = dislikeEventsRDD,
+      ratingEvents = ratingEventsRDD
     )
   }
 }
@@ -118,11 +142,14 @@ case class LikeEvent(user: String, item: String, t: Long)
 
 case class DislikeEvent(user: String, item: String, t: Long)
 
+case class RatingEvent(user: String, item: String, rating: Double, t: Long) //Used to take into account strength of like and dislike events
+
 class TrainingData(
   val users: RDD[(String, User)],
   val items: RDD[(String, Item)],
   val likeEvents: RDD[LikeEvent],
-  val dislikeEvents: RDD[DislikeEvent]
+  val dislikeEvents: RDD[DislikeEvent],
+  val ratingEvents: RDD[RatingEvent]
 ) extends Serializable {
   override def toString = {
     s"users: [${users.count()} (${users.take(2).toList}...)]" +

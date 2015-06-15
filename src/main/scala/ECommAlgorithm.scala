@@ -65,8 +65,8 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
   @transient lazy val logger = Logger[this.type]
 
   def train(sc: SparkContext, data: PreparedData): ECommModel = {
-    require(!data.likeEvents.take(1).isEmpty,
-      s"likeEvents in PreparedData cannot be empty." +
+    require(!data.ratingEvents.take(1).isEmpty,
+      s"ratingEvents in PreparedData cannot be empty." +
       " Please check if DataSource generates TrainingData" +
       " and Preprator generates PreparedData correctly.")
     require(!data.users.take(1).isEmpty,
@@ -151,7 +151,7 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
     itemStringIntMap: BiMap[String, Int],
     data: PreparedData): RDD[MLlibRating] = {
 
-    val mllibRatings = data.likeEvents
+    val mllibRatings = data.ratingEvents
       .map { r =>
         // Convert user and item String IDs to Int index for MLlib
         val uindex = userStringIntMap.getOrElse(r.user, -1)
@@ -165,16 +165,24 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
           logger.info(s"Couldn't convert nonexistent item ID ${r.item}"
             + " to Int index.")
 
-        ((uindex, iindex), 1)
+        ((uindex, iindex), (r.rating, r.t))
       }
       .filter { case ((u, i), v) =>
         // keep events with valid user and item index
         (u != -1) && (i != -1)
       }
-      .reduceByKey(_ + _) // aggregate all like events of same user-item pair
-      .map { case ((u, i), v) =>
+      .reduceByKey { case (v1 ,v2) =>
+        // if a user may rate same item with different value at different times,
+        // use the latest value for this case.
+        // Can remove this reduceByKey() if no need to support this case.
+        val (rating1, t1) = v1
+        val (rating2, t2) = v2
+        // keep the latest value
+        if (t1 > t2) v1 else v2
+      }
+      .map { case ((u, i), (rating, t)) =>
         // MLlibRating requires integer index for user and item
-        MLlibRating(u, i, v)
+        MLlibRating(u, i, rating)
 
 
         //TODO: Should take into account like events and dislike event ratings here
