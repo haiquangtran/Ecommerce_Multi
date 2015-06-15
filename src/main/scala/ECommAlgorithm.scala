@@ -59,6 +59,9 @@ class ECommModel(
   }
 }
 
+/**
+  * Use ALS to build item x feature matrix
+  */
 class ECommAlgorithm(val ap: ECommAlgorithmParams)
   extends P2LAlgorithm[PreparedData, ECommModel, Query, PredictedResult] {
 
@@ -167,14 +170,13 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
 
         ((uindex, iindex), (r.rating, r.t))
       }
-      .filter { case ((u, i), v) =>
+      .filter { case ((u, i), rating) =>
         // keep events with valid user and item index
         (u != -1) && (i != -1)
       }
       .reduceByKey { case (v1 ,v2) =>
         // if a user may rate same item with different value at different times,
         // use the latest value for this case.
-        // Can remove this reduceByKey() if no need to support this case.
         val (rating1, t1) = v1
         val (rating2, t2) = v2
         // keep the latest value
@@ -182,11 +184,8 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
       }
       .map { case ((u, i), (rating, t)) =>
         // MLlibRating requires integer index for user and item
-        MLlibRating(u, i, rating)
-
-
-        //TODO: Should take into account like events and dislike event ratings here
-
+        // takes into account like events and dislike event ratings here
+        MLlibRating(u, i, rating) 
       }
       .cache()
 

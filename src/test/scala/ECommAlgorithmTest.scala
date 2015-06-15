@@ -83,11 +83,10 @@ class ECommAlgorithmTest
       data = preparedData
     )
 
-    //TODO: This shouldn't work
     val expected = Seq(
-      MLlibRating(0, 0, 1),
-      MLlibRating(0, 1, 2),
-      MLlibRating(1, 1, 1),
+      MLlibRating(0, 0, -1),
+      MLlibRating(0, 1, -1),
+      MLlibRating(1, 1, -1),
       MLlibRating(1, 2, 1)
     )
 
