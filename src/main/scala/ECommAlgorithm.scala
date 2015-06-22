@@ -576,7 +576,7 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
     // filter categories
     categories.map { cat =>
       item.categories.map { itemCat =>
-        // keep this item if has ovelap categories with the query
+        // keep this item if has overlap categories with the query
         !(itemCat.toSet.intersect(cat).isEmpty)
       }.getOrElse(false) // discard this item if it has no categories
     }.getOrElse(true)
