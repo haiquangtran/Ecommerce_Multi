@@ -101,7 +101,7 @@ class DataSource(val dsp: DataSourceParams)
         }
       }
 
-    val wantEventsRDD: RDD[DislikeEvent] = eventsRDD
+    val wantEventsRDD: RDD[WantEvent] = eventsRDD
       .filter { event => event.event == "want" }
       .map { event =>
         try {
