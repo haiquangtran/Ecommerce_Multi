@@ -17,7 +17,8 @@ case class PredictedResult(
 
 case class ItemScore(
   item: String,
-  score: Double
+  score: Double,
+  likes: Double
 ) extends Serializable
 
 object ECommerceRecommendationEngine extends IEngineFactory {

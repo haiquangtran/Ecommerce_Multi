@@ -123,7 +123,7 @@ class DataSource(val dsp: DataSourceParams)
         try {
           val ratingValue: Double = event.event match {
             case "like" => 1.0 
-            case "dislike" => -1.00
+            case "dislike" => -1.0
             case "want" => 0.5
             case _ => throw new Exception(s"Unexpected event ${event} is read.")
           }
