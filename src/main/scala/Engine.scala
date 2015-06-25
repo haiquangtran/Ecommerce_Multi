@@ -18,6 +18,7 @@ case class PredictedResult(
 case class ItemScore(
   item: String,
   score: Double,
+  categories: Option[List[String]],
   likes: Double
 ) extends Serializable
 

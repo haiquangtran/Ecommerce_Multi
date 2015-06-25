@@ -296,6 +296,7 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
         // convert item int index back to string ID
         item = model.itemIntStringMap(i),
         score = s,
+        categories = productModels.get(i).get.item.categories,
         likes = productModels.get(i).get.count.toDouble
       )
     }
