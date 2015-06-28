@@ -16,10 +16,15 @@ case class PredictedResult(
 ) extends Serializable
 
 case class ItemScore(
+  name: String,
   item: String,
   score: Double,
   categories: Option[List[String]],
-  likes: Double
+  price: Double,
+  likes: Int,
+  dislikes: Int,
+  wants: Int,
+  average_rating: Double
 ) extends Serializable
 
 object ECommerceRecommendationEngine extends IEngineFactory {

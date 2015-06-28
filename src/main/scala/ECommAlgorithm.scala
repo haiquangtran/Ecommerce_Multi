@@ -295,9 +295,14 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
       new ItemScore(
         // convert item int index back to string ID
         item = model.itemIntStringMap(i),
+        name = productModels.get(i).get.item.name,
         score = s,
         categories = productModels.get(i).get.item.categories,
-        likes = productModels.get(i).get.count.toDouble
+        price = productModels.get(i).get.item.price,
+        likes = productModels.get(i).get.item.likes,
+        dislikes = productModels.get(i).get.item.dislikes,
+        wants = productModels.get(i).get.item.wants,
+        average_rating = productModels.get(i).get.item.average_rating
       )
     }
 

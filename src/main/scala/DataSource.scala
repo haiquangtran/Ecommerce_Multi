@@ -48,7 +48,15 @@ class DataSource(val dsp: DataSourceParams)
     )(sc).map { case (entityId, properties) =>
       val item = try {
         // Assume categories is optional property of item.
-        Item(categories = properties.getOpt[List[String]]("categories"))
+        Item(
+          categories = properties.getOpt[List[String]]("categories"),
+          name = properties.get[String]("name"),
+          price = properties.get[Double]("price"),
+          likes = properties.get[Int]("likes"),
+          dislikes = properties.get[Int]("dislikes"),
+          wants = properties.get[Int]("wants"),
+          average_rating = properties.get[Double]("average_rating")
+        )
       } catch {
         case e: Exception => {
           logger.error(s"Failed to get properties ${properties} of" +
@@ -154,15 +162,41 @@ class DataSource(val dsp: DataSourceParams)
 
 case class User()
 
-case class Item(categories: Option[List[String]])
+case class Item(
+  categories: Option[List[String]], 
+  name: String, 
+  price: Double, 
+  likes: Int, 
+  dislikes: Int,
+  wants: Int,
+  average_rating: Double
+)
 
-case class LikeEvent(user: String, item: String, t: Long)
+case class LikeEvent(
+  user: String, 
+  item: String, 
+  t: Long
+)
 
-case class DislikeEvent(user: String, item: String, t: Long)
+case class DislikeEvent(
+  user: String, 
+  item: String, 
+  t: Long
+)
 
-case class WantEvent(user: String, item: String, t: Long)
+case class WantEvent(
+  user: String, 
+  item: String, 
+  t: Long
+)
 
-case class RatingEvent(user: String, item: String, rating: Double, t: Long) //Used to take into account strength of like and dislike events
+// Account for the confidence values of different events in ALS such as likes, dislikes, wants
+case class RatingEvent(
+  user: String, 
+  item: String, 
+  rating: Double, 
+  t: Long
+)
 
 class TrainingData(
   val users: RDD[(String, User)],
