@@ -127,9 +127,13 @@ class ECommAlgorithmTest
         num = 5,
         categories = Some(Set("c0")),
         whiteList = None,
-        blackList = None),
+        blackList = None,
+        minPrice = None,
+        maxPrice = None),
       whiteList = None,
-      blackList = Set()
+      blackList = Set(),
+      minPrice = None,
+      maxPrice = None
     )
     // Rating is done by the dot product
     val expected = Array((2, 7.5), (0, 5.0))
@@ -149,9 +153,13 @@ class ECommAlgorithmTest
         num = 5,
         categories = None,
         whiteList = None,
-        blackList = None),
+        blackList = None,
+        minPrice = None,
+        maxPrice = None),
       whiteList = None,
-      blackList = Set()
+      blackList = Set(),
+      minPrice = None,
+      maxPrice = None
     )
 
     val expected = Array((1, 4.0), (0, 3.0), (2, 1.0))
@@ -172,9 +180,13 @@ class ECommAlgorithmTest
         num = 5,
         categories = Some(Set("c0")),
         whiteList = None,
-        blackList = None),
+        blackList = None,
+        minPrice = None,
+        maxPrice = None),
       whiteList = None,
-      blackList = Set()
+      blackList = Set(),
+      minPrice = None,
+      maxPrice = None
     )
 
     val expected = Array((0, 1.605), (2, 1.525))

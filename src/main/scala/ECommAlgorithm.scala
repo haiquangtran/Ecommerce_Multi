@@ -254,7 +254,9 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
         productModels = productModels,
         query = query,
         whiteList = whiteList,
-        blackList = finalBlackList
+        blackList = finalBlackList,
+        minPrice = query.minPrice,
+        maxPrice = query.maxPrice
       )
     } else {
       // the user doesn't have feature vector.
@@ -278,7 +280,9 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
           productModels = productModels,
           query = query,
           whiteList = whiteList,
-          blackList = finalBlackList
+          blackList = finalBlackList,
+          minPrice = query.minPrice,
+          maxPrice = query.maxPrice
         )
       } else {
         predictSimilar(
@@ -286,7 +290,9 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
           productModels = productModels,
           query = query,
           whiteList = whiteList,
-          blackList = finalBlackList
+          blackList = finalBlackList,
+          minPrice = query.minPrice,
+          maxPrice = query.maxPrice
         )
       }
     }
@@ -427,7 +433,9 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
     productModels: Map[Int, ProductModel],
     query: Query,
     whiteList: Option[Set[Int]],
-    blackList: Set[Int]
+    blackList: Set[Int],
+    minPrice: Option[Double],
+    maxPrice: Option[Double]
   ): Array[(Int, Double)] = {
     val indexScores: Map[Int, Double] = productModels.par // convert to parallel collection
       .filter { case (i, pm) =>
@@ -437,7 +445,9 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
           item = pm.item,
           categories = query.categories,
           whiteList = whiteList,
-          blackList = blackList
+          blackList = blackList,
+          minPrice = query.minPrice,
+          maxPrice = query.maxPrice
         )
       }
       .map { case (i, pm) =>
@@ -460,7 +470,9 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
     productModels: Map[Int, ProductModel],
     query: Query,
     whiteList: Option[Set[Int]],
-    blackList: Set[Int]
+    blackList: Set[Int],
+    minPrice: Option[Double],
+    maxPrice: Option[Double]
   ): Array[(Int, Double)] = {
     val indexScores: Map[Int, Double] = productModels.par // convert back to sequential collection
       .filter { case (i, pm) =>
@@ -469,7 +481,9 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
           item = pm.item,
           categories = query.categories,
           whiteList = whiteList,
-          blackList = blackList
+          blackList = blackList,
+          minPrice = query.minPrice,
+          maxPrice = query.maxPrice
         )
       }
       .map { case (i, pm) =>
@@ -490,7 +504,9 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
     productModels: Map[Int, ProductModel],
     query: Query,
     whiteList: Option[Set[Int]],
-    blackList: Set[Int]
+    blackList: Set[Int],
+    minPrice: Option[Double],
+    maxPrice: Option[Double]
   ): Array[(Int, Double)] = {
     val indexScores: Map[Int, Double] = productModels.par // convert to parallel collection
       .filter { case (i, pm) =>
@@ -500,7 +516,9 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
           item = pm.item,
           categories = query.categories,
           whiteList = whiteList,
-          blackList = blackList
+          blackList = blackList,
+          minPrice = query.minPrice,
+          maxPrice = query.maxPrice
         )
       }
       .map { case (i, pm) =>
@@ -575,11 +593,15 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
     item: Item,
     categories: Option[Set[String]],
     whiteList: Option[Set[Int]],
-    blackList: Set[Int]
+    blackList: Set[Int],
+    minPrice: Option[Double],
+    maxPrice: Option[Double]
   ): Boolean = {
     // can add other custom filtering here
     whiteList.map(_.contains(i)).getOrElse(true) &&
     !blackList.contains(i) &&
+    item.price >= minPrice.getOrElse(0.0) && 
+    item.price <= maxPrice.getOrElse(Double.PositiveInfinity) &&
     // filter categories
     categories.map { cat =>
       item.categories.map { itemCat =>
@@ -587,7 +609,6 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
         !(itemCat.toSet.intersect(cat).isEmpty)
       }.getOrElse(false) // discard this item if it has no categories
     }.getOrElse(true)
-
   }
 
 }

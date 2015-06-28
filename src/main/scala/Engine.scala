@@ -8,7 +8,9 @@ case class Query(
   num: Int,
   categories: Option[Set[String]],
   whiteList: Option[Set[String]],
-  blackList: Option[Set[String]]
+  blackList: Option[Set[String]],
+  minPrice: Option[Double],
+  maxPrice: Option[Double]
 ) extends Serializable
 
 case class PredictedResult(
