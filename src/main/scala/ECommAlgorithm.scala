@@ -120,11 +120,11 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
       items.leftOuterJoin(m.productFeatures).collectAsMap.toMap
 
     // count the number of items being bought for recommendation popular items as default case
-    val popularCount = trainDefault(
-      userStringIntMap = userStringIntMap,
-      itemStringIntMap = itemStringIntMap,
-      data = data
-    )
+    // val popularCount = trainDefault(
+    //   userStringIntMap = userStringIntMap,
+    //   itemStringIntMap = itemStringIntMap,
+    //   data = data
+    // )
 
     val productModels: Map[Int, ProductModel] = productFeatures
       .map { case (index, (item, features)) =>
@@ -132,7 +132,8 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
           item = item,
           features = features,
           // NOTE: use getOrElse because popularCount may not contain all items.
-          count = popularCount.getOrElse(index, 0)
+          // count = popularCount.getOrElse(index, 0)
+          count = (item.likes - item.dislikes)
         )
         (index, pm)
       }
