@@ -129,7 +129,9 @@ class ECommAlgorithmTest
         whiteList = None,
         blackList = None,
         minPrice = None,
-        maxPrice = None),
+        maxPrice = None,
+        popular = None
+      ),
       whiteList = None,
       blackList = Set(),
       minPrice = None,
@@ -155,7 +157,9 @@ class ECommAlgorithmTest
         whiteList = None,
         blackList = None,
         minPrice = None,
-        maxPrice = None),
+        maxPrice = None,
+        popular = None
+      ),
       whiteList = None,
       blackList = Set(),
       minPrice = None,
@@ -182,7 +186,9 @@ class ECommAlgorithmTest
         whiteList = None,
         blackList = None,
         minPrice = None,
-        maxPrice = None),
+        maxPrice = None,
+        popular = None
+      ),
       whiteList = None,
       blackList = Set(),
       minPrice = None,

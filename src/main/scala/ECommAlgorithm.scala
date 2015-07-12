@@ -233,13 +233,16 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
     val userFeatures = model.userFeatures
     val productModels = model.productModels
 
+    // Determines if popular items are returned
+    val isPopular: Option[Boolean] = query.popular
+
     // convert whiteList's string ID to integer index
     val whiteList: Option[Set[Int]] = query.whiteList.map( set =>
       set.flatMap(model.itemStringIntMap.get(_))
     )
 
     val finalBlackList: Set[Int] = genBlackList(query = query)
-      // convert seen Items list from String ID to interger Index
+      // convert seen Items list from String ID to integer Index
       .flatMap(x => model.itemStringIntMap.get(x))
 
     val userFeature: Option[Array[Double]] =
@@ -247,7 +250,18 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
         userFeatures.get(userIndex)
       }
 
-    val topScores: Array[(Int, Double)] = if (userFeature.isDefined) {
+    val topScores: Array[(Int, Double)] = 
+    if (isPopular.isDefined && isPopular.get) {
+      // Recommend popular items
+      predictDefault(
+        productModels = productModels,
+        query = query,
+        whiteList = whiteList,
+        blackList = finalBlackList,
+        minPrice = query.minPrice,
+        maxPrice = query.maxPrice
+      )
+    } else if (userFeature.isDefined) {
       // the user has feature vector
       predictKnownUser(
         userFeature = userFeature.get,
@@ -275,6 +289,7 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
         }.flatten
 
       if (recentFeatures.isEmpty) {
+        // Recommend popular items
         logger.info(s"No features vector for recent items ${recentItems}.")
         predictDefault(
           productModels = productModels,
@@ -285,6 +300,7 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
           maxPrice = query.maxPrice
         )
       } else {
+        // Recommend similar items
         predictSimilar(
           recentFeatures = recentFeatures,
           productModels = productModels,
