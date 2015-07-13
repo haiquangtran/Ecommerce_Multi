@@ -124,7 +124,7 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
         val pm = ProductModel(
           item = item,
           features = features,
-          count = wilsonsConfidenceInterval(item)          
+          count = popularScore(item)  // Wilson Confidence Interval       
         )
         (index, pm)
       }
@@ -621,7 +621,7 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
 
   // Used for popularity score
   private
-  def wilsonsConfidenceInterval(
+  def popularScore(
     item: Item
   ): Double = {
     val likes: Double = item.likes
@@ -629,9 +629,9 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
     val n: Double = likes + dislikes
     val z: Double = 1.96 // 95% confidence interval
     val pHat: Double = 1.0*(likes/n)
-    val popularScore: Double = (pHat + z*z/(2*n) - z * Math.sqrt((pHat*(1-pHat)+z*z/(4*n))/n))/(1+z*z/n)
+    val wilsonConfidenceInterval: Double = (pHat + z*z/(2*n) - z * Math.sqrt((pHat*(1-pHat)+z*z/(4*n))/n))/(1+z*z/n)
 
-    return popularScore;
+    return wilsonConfidenceInterval;
   }
 
 }
