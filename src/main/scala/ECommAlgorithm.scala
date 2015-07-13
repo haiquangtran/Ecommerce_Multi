@@ -33,7 +33,7 @@ case class ECommAlgorithmParams(
 case class ProductModel(
   item: Item,
   features: Option[Array[Double]], // features by ALS
-  count: Int // popular count for default score
+  count: Double // popular count for default score
 )
 
 class ECommModel(
@@ -119,21 +119,12 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
     val productFeatures: Map[Int, (Item, Option[Array[Double]])] =
       items.leftOuterJoin(m.productFeatures).collectAsMap.toMap
 
-    // count the number of items being bought for recommendation popular items as default case
-    // val popularCount = trainDefault(
-    //   userStringIntMap = userStringIntMap,
-    //   itemStringIntMap = itemStringIntMap,
-    //   data = data
-    // )
-
     val productModels: Map[Int, ProductModel] = productFeatures
       .map { case (index, (item, features)) =>
         val pm = ProductModel(
           item = item,
           features = features,
-          // NOTE: use getOrElse because popularCount may not contain all items.
-          // count = popularCount.getOrElse(index, 0)
-          count = (item.likes - item.dislikes)
+          count = wilsonsConfidenceInterval(item)          
         )
         (index, pm)
       }
@@ -626,6 +617,21 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
         !(itemCat.toSet.intersect(cat).isEmpty)
       }.getOrElse(false) // discard this item if it has no categories
     }.getOrElse(true)
+  }
+
+  // Used for popularity score
+  private
+  def wilsonsConfidenceInterval(
+    item: Item
+  ): Double = {
+    val likes: Double = item.likes
+    val dislikes: Double = item.dislikes
+    val n: Double = likes + dislikes
+    val z: Double = 1.96 // 95% confidence interval
+    val pHat: Double = 1.0*(likes/n)
+    val popularScore: Double = (pHat + z*z/(2*n) - z * Math.sqrt((pHat*(1-pHat)+z*z/(4*n))/n))/(1+z*z/n)
+
+    return popularScore;
   }
 
 }
