@@ -631,7 +631,11 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
     val pHat: Double = 1.0*(likes/n)
     val wilsonConfidenceInterval: Double = (pHat + z*z/(2*n) - z * Math.sqrt((pHat*(1-pHat)+z*z/(4*n))/n))/(1+z*z/n)
 
-    return wilsonConfidenceInterval;
+    if (n == 0) {
+      return 0
+    } else {
+      return wilsonConfidenceInterval;
+    }
   }
 
 }
