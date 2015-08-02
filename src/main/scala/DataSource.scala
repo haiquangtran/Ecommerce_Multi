@@ -163,7 +163,89 @@ class DataSource(val dsp: DataSourceParams)
     )
   }
 
-  /* EVALUATION */
+  /* --------------------------------------- EVALUATION ------------------------------------*/
+
+  def getRatingsForEval(sc: SparkContext): RDD[RatingEvent] = {
+
+    // create a RDD of (entityID, User)
+    val usersRDD: RDD[(String, User)] = PEventStore.aggregateProperties(
+      appName = dsp.appName,
+      entityType = "user"
+    )(sc).map { case (entityId, properties) =>
+      val user = try {
+        User()
+      } catch {
+        case e: Exception => {
+          logger.error(s"Failed to get properties ${properties} of" +
+            s" user ${entityId}. Exception: ${e}.")
+          throw e
+        }
+      }
+      (entityId, user)
+    }.cache()
+
+    // create a RDD of (entityID, Item)
+    val itemsRDD: RDD[(String, Item)] = PEventStore.aggregateProperties(
+      appName = dsp.appName,
+      entityType = "item"
+    )(sc).map { case (entityId, properties) =>
+      val item = try {
+        // Assume categories is optional property of item.
+        Item(
+          categories = properties.getOpt[List[String]]("categories"),
+          name = properties.get[String]("name"),
+          price = properties.get[Double]("price"),
+          likes = properties.get[Int]("likes"),
+          dislikes = properties.get[Int]("dislikes"),
+          wants = properties.get[Int]("wants"),
+          average_rating = properties.get[Double]("average_rating")
+        )
+      } catch {
+        case e: Exception => {
+          logger.error(s"Failed to get properties ${properties} of" +
+            s" item ${entityId}. Exception: ${e}.")
+          throw e
+        }
+      }
+      (entityId, item)
+    }.cache()
+
+    val eventsRDD: RDD[Event] = PEventStore.find(
+      appName = dsp.appName,
+      entityType = Some("user"),
+      eventNames = Some(List("like", "dislike", "want")),
+      // targetEntityType is optional field of an event.
+      targetEntityType = Some(Some("item")))(sc)
+      .cache()
+
+    val ratingEventsForEval: RDD[RatingEvent] = eventsRDD
+      .map { event =>
+        try {
+          val ratingValue: Double = event.event match {
+            case "like" => 1.0 
+            case "dislike" => -1.0
+            case "want" => 0.5
+            case _ => throw new Exception(s"Unexpected event ${event} is read.")
+          }
+          
+          RatingEvent(
+            user = event.entityId,
+            item = event.targetEntityId.get,
+            rating = ratingValue,
+            t = event.eventTime.getMillis
+          )
+        } catch {
+          case e: Exception =>
+            logger.error(s"Cannot convert ${event} to RatingEvent." +
+              s" Exception: ${e}.")
+            throw e
+        }
+    }
+
+    ratingEventsForEval
+  }
+
+  /* k-fold evaluation implementation. Reads and selects data from datastore and returns sequence of (training, validation) data */
   override
   def readEval(sc: SparkContext)
   : Seq[(TrainingData, EmptyEvaluationInfo, RDD[(Query, ActualResult)])] = {
@@ -171,26 +253,30 @@ class DataSource(val dsp: DataSourceParams)
     val evalParams = dsp.evalParams.get
 
     val kFold = evalParams.kFold
-    val ratings: RDD[(Rating, Long)] = getRatings(sc).zipWithUniqueId
+    //Annotate each rating in the raw data by an index
+    val ratings: RDD[(RatingEvent, Long)] = getRatingsForEval(sc).zipWithUniqueId
     ratings.cache
 
+    //In each fold, rating goes to either training or testing set based on modulus value.
     (0 until kFold).map { idx => {
       val trainingRatings = ratings.filter(_._2 % kFold != idx).map(_._1)
       val testingRatings = ratings.filter(_._2 % kFold == idx).map(_._1)
 
-      val testingUsers: RDD[(String, Iterable[Rating])] = testingRatings.groupBy(_.user)
+      // group ratings by user, one query is constructed for each user 
+      val testingUsers: RDD[(String, Iterable[RatingEvent])] = testingRatings.groupBy(_.user)
 
-      (new TrainingData(trainingRatings),
+      (new TrainingData(null, null, null, null, trainingRatings),
         new EmptyEvaluationInfo(),
         testingUsers.map {
-          case (user, ratings) => (Query(user, evalParams.queryNum), ActualResult(ratings.toArray))
+          case (user, ratings) => (Query(user, evalParams.queryNum, None, None, None, None, None, None), ActualResult(ratings.toArray))
         }
       )
     }}
   }
 
-
 }
+
+/* ----------------------------------- END EVALUATION ---------------------------------------------*/
 
 case class User()
 

@@ -42,10 +42,6 @@ object ECommerceRecommendationEngine extends IEngineFactory {
 
 /* EVALUATION */
 
-// case class ActualResult(
-//   val label: Double
-// ) extends Serializable
-
 case class ActualResult(
   ratings: Array[RatingEvent]
 ) extends Serializable

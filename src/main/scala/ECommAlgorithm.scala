@@ -41,7 +41,8 @@ class ECommModel(
   val userFeatures: Map[Int, Array[Double]],
   val productModels: Map[Int, ProductModel],
   val userStringIntMap: BiMap[String, Int],
-  val itemStringIntMap: BiMap[String, Int]
+  val itemStringIntMap: BiMap[String, Int],
+  val productFeatures: RDD[(Int, Array[Double])]
 ) extends Serializable {
 
   @transient lazy val itemIntStringMap = itemStringIntMap.inverse
@@ -134,7 +135,8 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
       userFeatures = userFeatures,
       productModels = productModels,
       userStringIntMap = userStringIntMap,
-      itemStringIntMap = itemStringIntMap
+      itemStringIntMap = itemStringIntMap,
+      productFeatures = m.productFeatures
     )
   }
 
@@ -644,11 +646,12 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
   
   // This function is used by the evaluation module, where a batch of queries is sent to this engine
   // for evaluation purpose.
-  override def batchPredict(model: ALSModel, queries: RDD[(Long, Query)]): RDD[(Long, PredictedResult)] = {
+  override def batchPredict(model: ECommModel, queries: RDD[(Long, Query)]): RDD[(Long, PredictedResult)] = {
     val userIxQueries: RDD[(Int, (Long, Query))] = queries
     .map { case (ix, query) => {
       // If user not found, then the index is -1
       val userIx = model.userStringIntMap.get(query.user).getOrElse(-1)
+      //RDD of queries for each user i.e. (user1, (0, Query))
       (userIx, (ix, query))
     }}
 
@@ -657,6 +660,7 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
       .keys
       .filter(_ != -1)
       .cartesian(model.productFeatures.map(_._1))
+
 
     // Call mllib ALS's predict function.
     val ratings: RDD[MLlibRating] = model.predict(usersProducts)

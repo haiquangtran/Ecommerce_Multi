@@ -1,5 +1,5 @@
 package org.template.recommendation
-// package org.template.ecommercerecommendation
+package org.template.ecommercerecommendation
 
 import io.prediction.controller.Evaluation
 import io.prediction.controller.OptionAverageMetric
@@ -7,7 +7,7 @@ import io.prediction.controller.AverageMetric
 import io.prediction.controller.EmptyEvaluationInfo
 import io.prediction.controller.EngineParamsGenerator
 import io.prediction.controller.EngineParams
-import io.prediction.controller.Usage
+// import io.prediction.controller.Usage
 
 // MetricEvaluator:
 // $ pio eval org.template.recommendation.RecommendationEvaluation \
@@ -87,5 +87,5 @@ object EngineParamsList extends BaseEngineParamsList {
     yield baseEP.copy(
       algorithmParamsList = Seq(
         //appName, unseenOnly, seenEvents, similarEvents, rank, numIterations, lambda, seed
-        ("ecomm", ECommAlgorithmParams("wotm", false, None(), None(), rank, numIterations, 0.01, Some(3)))))
+        ("ecomm", ECommAlgorithmParams("wotm", false, None, None, rank, numIterations, 0.01, Some(3)))))
 }
