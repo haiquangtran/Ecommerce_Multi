@@ -54,7 +54,6 @@ class DataSource(val dsp: DataSourceParams)
           price = properties.get[Double]("price"),
           likes = properties.get[Int]("likes"),
           dislikes = properties.get[Int]("dislikes"),
-          wants = properties.get[Int]("wants"),
           average_rating = properties.get[Double]("average_rating")
         )
       } catch {
@@ -70,7 +69,7 @@ class DataSource(val dsp: DataSourceParams)
     val eventsRDD: RDD[Event] = PEventStore.find(
       appName = dsp.appName,
       entityType = Some("user"),
-      eventNames = Some(List("like", "dislike", "want")),
+      eventNames = Some(List("like", "dislike")),
       // targetEntityType is optional field of an event.
       targetEntityType = Some(Some("item")))(sc)
       .cache()
@@ -109,30 +108,12 @@ class DataSource(val dsp: DataSourceParams)
         }
       }
 
-    val wantEventsRDD: RDD[WantEvent] = eventsRDD
-      .filter { event => event.event == "want" }
-      .map { event =>
-        try {
-          WantEvent(
-            user = event.entityId,
-            item = event.targetEntityId.get,
-            t = event.eventTime.getMillis
-          )
-        } catch {
-          case e: Exception =>
-            logger.error(s"Cannot convert ${event} to WantEvent." +
-              s" Exception: ${e}.")
-            throw e
-        }
-      }
-
     val ratingEventsRDD: RDD[RatingEvent] = eventsRDD
       .map { event =>
         try {
           val ratingValue: Double = event.event match {
             case "like" => 1.0 
             case "dislike" => -1.0
-            case "want" => 0.5
             case _ => throw new Exception(s"Unexpected event ${event} is read.")
           }
           
@@ -168,7 +149,6 @@ case class Item(
   price: Double, 
   likes: Int, 
   dislikes: Int,
-  wants: Int,
   average_rating: Double
 )
 
@@ -184,13 +164,7 @@ case class DislikeEvent(
   t: Long
 )
 
-case class WantEvent(
-  user: String, 
-  item: String, 
-  t: Long
-)
-
-// Account for the confidence values of different events in ALS such as likes, dislikes, wants
+// Account for the confidence values of different events in ALS such as likes, dislikes
 case class RatingEvent(
   user: String, 
   item: String, 

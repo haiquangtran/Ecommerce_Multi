@@ -26,7 +26,6 @@ case class ItemScore(
   price: Double,
   likes: Int,
   dislikes: Int,
-  wants: Int,
   average_rating: Double
 ) extends Serializable
 

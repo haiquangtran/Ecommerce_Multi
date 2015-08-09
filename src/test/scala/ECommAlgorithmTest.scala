@@ -29,9 +29,9 @@ class ECommAlgorithmTest
   val users = Map("u0" -> User(), "u1" -> User())
 
 
-  val i0 = Item(categories = Some(List("c0", "c1")), name = "dish1", price = 10.00, likes = 1, dislikes = 1, wants = 0, average_rating = 2.5)
-  val i1 = Item(categories = None, name = "dish2", price = 15.00, likes = 3, dislikes = 2, wants = 0, average_rating = 2.5)
-  val i2 = Item(categories = Some(List("c0", "c2")), name = "dish3", price = 20.00, likes = 1, dislikes = 0, wants = 0, average_rating = 2.5)
+  val i0 = Item(categories = Some(List("c0", "c1")), name = "dish1", price = 10.00, likes = 1, dislikes = 1, average_rating = 2.5)
+  val i1 = Item(categories = None, name = "dish2", price = 15.00, likes = 3, dislikes = 2, average_rating = 2.5)
+  val i2 = Item(categories = Some(List("c0", "c2")), name = "dish3", price = 20.00, likes = 1, dislikes = 0, average_rating = 2.5)
 
   val items = Map(
     "i0" -> i0,

@@ -13,8 +13,8 @@ class PreparatorTest
   )
 
   val items = Map(
-    "i0" -> Item(categories = Some(List("c0", "c1")), name = "dish1", price = 10.00, likes = 1, dislikes = 1, wants = 0, average_rating = 2.5),
-    "i1" -> Item(categories = None, name = "dish2", price = 15.00, likes = 2, dislikes = 2, wants = 0, average_rating = 2.5)
+    "i0" -> Item(categories = Some(List("c0", "c1")), name = "dish1", price = 10.00, likes = 1, dislikes = 1, average_rating = 2.5),
+    "i1" -> Item(categories = None, name = "dish2", price = 15.00, likes = 2, dislikes = 2, average_rating = 2.5)
   )
 
   val like = Seq(
