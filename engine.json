@@ -12,7 +12,7 @@
       "name": "ecomm",
       "params": {
         "appName": "wotm",
-        "unseenOnly": false,
+        "unseenOnly": true,
         "seenEvents": ["like", "dislike"],
         "similarEvents": ["like"],
         "rank": 10,
