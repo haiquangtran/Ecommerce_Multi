@@ -12,12 +12,12 @@
       "name": "ecomm",
       "params": {
         "appName": "wotm",
-        "unseenOnly": false,
+        "unseenOnly": true,
         "seenEvents": ["like", "dislike"],
         "similarEvents": ["like"],
         "rank": 10,
         "numIterations" : 20,
-        "lambda": 0.01,
+        "lambda": 0.08,
         "seed": 3
       }
     }
