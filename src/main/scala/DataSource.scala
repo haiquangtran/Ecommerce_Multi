@@ -132,7 +132,6 @@ class DataSource(val dsp: DataSourceParams)
           val ratingValue: Double = event.event match {
             case "like" => 1.0 
             case "dislike" => -1.0
-            case "want" => 0.5
             case _ => throw new Exception(s"Unexpected event ${event} is read.")
           }
           
@@ -184,11 +183,6 @@ case class DislikeEvent(
   t: Long
 )
 
-case class WantEvent(
-  user: String, 
-  item: String, 
-  t: Long
-)
 
 // Account for the confidence values of different events in ALS such as likes, dislikes, wants
 case class RatingEvent(
