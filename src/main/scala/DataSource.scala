@@ -109,23 +109,6 @@ class DataSource(val dsp: DataSourceParams)
         }
       }
 
-    val wantEventsRDD: RDD[WantEvent] = eventsRDD
-      .filter { event => event.event == "want" }
-      .map { event =>
-        try {
-          WantEvent(
-            user = event.entityId,
-            item = event.targetEntityId.get,
-            t = event.eventTime.getMillis
-          )
-        } catch {
-          case e: Exception =>
-            logger.error(s"Cannot convert ${event} to WantEvent." +
-              s" Exception: ${e}.")
-            throw e
-        }
-      }
-
     val ratingEventsRDD: RDD[RatingEvent] = eventsRDD
       .map { event =>
         try {
