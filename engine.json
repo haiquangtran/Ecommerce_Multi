@@ -15,7 +15,7 @@
         "unseenOnly": true,
         "seenEvents": ["like", "dislike"],
         "similarEvents": ["like"],
-        "rank": 10,
+        "rank": 7,
         "numIterations" : 20,
         "lambda": 0.08,
         "seed": 3
