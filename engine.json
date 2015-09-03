@@ -13,11 +13,11 @@
       "params": {
         "appName": "wotm",
         "unseenOnly": true,
-        "seenEvents": ["like", "dislike"],
+        "seenEvents": ["like"],
         "similarEvents": ["like"],
-        "rank": 7,
+        "rank": 10,
         "numIterations" : 20,
-        "lambda": 0.08,
+        "lambda": 0.01,
         "seed": 3
       }
     }

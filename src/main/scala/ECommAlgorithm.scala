@@ -68,8 +68,8 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
   @transient lazy val logger = Logger[this.type]
 
   def train(sc: SparkContext, data: PreparedData): ECommModel = {
-    require(!data.ratingEvents.take(1).isEmpty,
-      s"ratingEvents in PreparedData cannot be empty." +
+    require(!data.likeEvents.take(1).isEmpty,
+      s"likeEvents in PreparedData cannot be empty." +
       " Please check if DataSource generates TrainingData" +
       " and Preprator generates PreparedData correctly.")
     require(!data.users.take(1).isEmpty,
@@ -99,13 +99,13 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
     val seed = ap.seed.getOrElse(System.nanoTime)
 
     // use ALS to train feature vectors
-    val m = ALS.train(
+    val m = ALS.trainImplicit(
       ratings = mllibRatings,
       rank = ap.rank,
       iterations = ap.numIterations,
       lambda = ap.lambda,
       blocks = -1,
-      // alpha = 1.0,
+      alpha = 1.0,
       seed = seed)
 
     val userFeatures = m.userFeatures.collectAsMap.toMap
@@ -146,7 +146,7 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
     itemStringIntMap: BiMap[String, Int],
     data: PreparedData): RDD[MLlibRating] = {
 
-    val mllibRatings = data.ratingEvents
+    val mllibRatings = data.likeEvents
       .map { r =>
         // Convert user and item String IDs to Int index for MLlib
         val uindex = userStringIntMap.getOrElse(r.user, -1)
