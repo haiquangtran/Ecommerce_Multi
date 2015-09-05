@@ -1,4 +1,3 @@
-package org.template.recommendation
 package org.template.ecommercerecommendation
 
 import io.prediction.controller.Evaluation
@@ -7,11 +6,12 @@ import io.prediction.controller.AverageMetric
 import io.prediction.controller.EmptyEvaluationInfo
 import io.prediction.controller.EngineParamsGenerator
 import io.prediction.controller.EngineParams
+import io.prediction.controller.Evaluation
+import io.prediction.controller.MetricEvaluator
 // import io.prediction.controller.Usage
 
 // MetricEvaluator:
-// $ pio eval org.template.recommendation.RecommendationEvaluation \
-//   org.template.recommendation.ParamsList
+// pio eval org.template.ecommercerecommendation.ECommerceRecommendationEvaluation \ org.template.ecommercerecommendation.EngineParamsList
 
 case class PrecisionAtK(k: Int, ratingThreshold: Double = 2.0)
     extends OptionAverageMetric[EmptyEvaluationInfo, Query, PredictedResult, ActualResult] {
@@ -20,7 +20,7 @@ case class PrecisionAtK(k: Int, ratingThreshold: Double = 2.0)
   override def header = s"Precision@K (k=$k, threshold=$ratingThreshold)"
 
   def calculate(q: Query, p: PredictedResult, a: ActualResult): Option[Double] = {
-    val positives: Set[String] = a.ratings.filter(_.rating >= ratingThreshold).map(_.item).toSet
+    val positives: Set[String] = a.actualRatings.filter(_.rating >= ratingThreshold).map(_.item).toSet
 
     // If there is no positive results, Precision is undefined. We don't consider this case in the
     // metrics, hence we return None.
@@ -34,18 +34,18 @@ case class PrecisionAtK(k: Int, ratingThreshold: Double = 2.0)
   }
 }
 
-case class PositiveCount(ratingThreshold: Double = 2.0)
+case class PositiveCount(ratingThreshold: Double = 0.5)
     extends AverageMetric[EmptyEvaluationInfo, Query, PredictedResult, ActualResult] {
   override def header = s"PositiveCount (threshold=$ratingThreshold)"
 
   def calculate(q: Query, p: PredictedResult, a: ActualResult): Double = {
-    a.ratings.filter(_.rating >= ratingThreshold).size
+    a.actualRatings.filter(_.rating >= ratingThreshold).size
   }
 }
 
-object RecommendationEvaluation extends Evaluation {
+object ECommerceRecommendationEvaluation extends Evaluation {
   engineEvaluator = (
-    RecommendationEngine(),
+    ECommerceRecommendationEngine(),
     MetricEvaluator(
       metric = PrecisionAtK(k = 10, ratingThreshold = 4.0),
       otherMetrics = Seq(
@@ -57,15 +57,14 @@ object RecommendationEvaluation extends Evaluation {
       )))
 }
 
-
-object ComprehensiveRecommendationEvaluation extends Evaluation {
+object ComprehensiveECommerceRecommendationEvaluation extends Evaluation {
   val ratingThresholds = Seq(0.0, 2.0, 4.0)
   val ks = Seq(1, 3, 10)
 
   engineEvaluator = (
-    RecommendationEngine(),
+    ECommerceRecommendationEngine(),
     MetricEvaluator(
-      metric = PrecisionAtK(k = 3, ratingThreshold = 2.0),
+      metric = PrecisionAtK(k = 3, ratingThreshold = 0.5),
       otherMetrics = (
         (for (r <- ratingThresholds) yield PositiveCount(ratingThreshold = r)) ++
         (for (r <- ratingThresholds; k <- ks) yield PrecisionAtK(k = k, ratingThreshold = r))
@@ -87,5 +86,5 @@ object EngineParamsList extends BaseEngineParamsList {
     yield baseEP.copy(
       algorithmParamsList = Seq(
         //appName, unseenOnly, seenEvents, similarEvents, rank, numIterations, lambda, seed
-        ("ecomm", ECommAlgorithmParams("wotm", false, None, None, rank, numIterations, 0.01, Some(3)))))
+        ("ecomm", ECommAlgorithmParams("wotm", true, List("like", "dislike"), List("like"), rank, numIterations, 0.01, Some(3)))))
 }

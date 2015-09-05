@@ -43,5 +43,5 @@ object ECommerceRecommendationEngine extends IEngineFactory {
 /* EVALUATION */
 
 case class ActualResult(
-  ratings: Array[RatingEvent]
+  actualRatings: Array[RatingEvent]
 ) extends Serializable

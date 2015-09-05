@@ -13,15 +13,18 @@ import org.apache.spark.rdd.RDD
 
 import grizzled.slf4j.Logger
 
-case class DataSourceEvalParams(kFold: Int, queryNum: Int)
+case class DataSourceEvalParams(
+  kFold: Int, 
+  queryNum: Int
+)
 
 case class DataSourceParams(
   appName: String,
-  evalParams: Option[DataSourceEvalParams]) extends Params
+  evalParams: Option[DataSourceEvalParams]
+) extends Params
 
 class DataSource(val dsp: DataSourceParams)
-  extends PDataSource[TrainingData,
-      EmptyEvaluationInfo, Query, ActualResult] { //EmptyActualResult, 
+  extends PDataSource[TrainingData, EmptyEvaluationInfo, Query, ActualResult] { //EmptyActualResult, 
 
   @transient lazy val logger = Logger[this.type]
 
@@ -29,48 +32,30 @@ class DataSource(val dsp: DataSourceParams)
   def readTraining(sc: SparkContext): TrainingData = {
 
     // create a RDD of (entityID, User)
-    val usersRDD: RDD[(String, User)] = PEventStore.aggregateProperties(
-      appName = dsp.appName,
-      entityType = "user"
-    )(sc).map { case (entityId, properties) =>
-      val user = try {
-        User()
-      } catch {
-        case e: Exception => {
-          logger.error(s"Failed to get properties ${properties} of" +
-            s" user ${entityId}. Exception: ${e}.")
-          throw e
-        }
-      }
-      (entityId, user)
-    }.cache()
+    val usersRDD: RDD[(String, User)] = getUsers(sc)
 
     // create a RDD of (entityID, Item)
-    val itemsRDD: RDD[(String, Item)] = PEventStore.aggregateProperties(
-      appName = dsp.appName,
-      entityType = "item"
-    )(sc).map { case (entityId, properties) =>
-      val item = try {
-        // Assume categories is optional property of item.
-        Item(
-          categories = properties.getOpt[List[String]]("categories"),
-          name = properties.get[String]("name"),
-          price = properties.get[Double]("price"),
-          likes = properties.get[Int]("likes"),
-          dislikes = properties.get[Int]("dislikes"),
-          wants = properties.get[Int]("wants"),
-          average_rating = properties.get[Double]("average_rating")
-        )
-      } catch {
-        case e: Exception => {
-          logger.error(s"Failed to get properties ${properties} of" +
-            s" item ${entityId}. Exception: ${e}.")
-          throw e
-        }
-      }
-      (entityId, item)
-    }.cache()
+    val itemsRDD: RDD[(String, Item)] = getItems(sc)
 
+    val eventsRDD: RDD[Event] = getAllEvents(sc)
+
+    val likeEventsRDD: RDD[LikeEvent] = getLikeEvents(eventsRDD)
+
+    val dislikeEventsRDD: RDD[DislikeEvent] = getDislikeEvents(eventsRDD)
+
+    // Create the values for like and dislike events
+    val ratingEventsRDD: RDD[RatingEvent] = getRatingEvents(eventsRDD)
+
+    new TrainingData(
+      users = usersRDD,
+      items = itemsRDD,
+      likeEvents = likeEventsRDD,
+      dislikeEvents = dislikeEventsRDD,
+      ratingEvents = ratingEventsRDD
+    )
+  }
+
+  def getAllEvents(sc: SparkContext): RDD[Event] = {
     val eventsRDD: RDD[Event] = PEventStore.find(
       appName = dsp.appName,
       entityType = Some("user"),
@@ -79,6 +64,10 @@ class DataSource(val dsp: DataSourceParams)
       targetEntityType = Some(Some("item")))(sc)
       .cache()
 
+      eventsRDD
+  }
+
+  def getLikeEvents(eventsRDD: RDD[Event]): RDD[LikeEvent] = {
     val likeEventsRDD: RDD[LikeEvent] = eventsRDD
       .filter { event => event.event == "like" }
       .map { event =>
@@ -96,6 +85,10 @@ class DataSource(val dsp: DataSourceParams)
         }
       }
 
+    likeEventsRDD
+  }
+
+  def getDislikeEvents(eventsRDD: RDD[Event]): RDD[DislikeEvent] = {
     val dislikeEventsRDD: RDD[DislikeEvent] = eventsRDD
       .filter { event => event.event == "dislike" }
       .map { event =>
@@ -113,30 +106,16 @@ class DataSource(val dsp: DataSourceParams)
         }
       }
 
-    val wantEventsRDD: RDD[WantEvent] = eventsRDD
-      .filter { event => event.event == "want" }
-      .map { event =>
-        try {
-          WantEvent(
-            user = event.entityId,
-            item = event.targetEntityId.get,
-            t = event.eventTime.getMillis
-          )
-        } catch {
-          case e: Exception =>
-            logger.error(s"Cannot convert ${event} to WantEvent." +
-              s" Exception: ${e}.")
-            throw e
-        }
-      }
+    dislikeEventsRDD
+  }
 
+  def getRatingEvents(eventsRDD: RDD[Event]): RDD[RatingEvent] = {
     val ratingEventsRDD: RDD[RatingEvent] = eventsRDD
       .map { event =>
         try {
           val ratingValue: Double = event.event match {
             case "like" => 1.0 
             case "dislike" => -1.0
-            case "want" => 0.5
             case _ => throw new Exception(s"Unexpected event ${event} is read.")
           }
           
@@ -154,37 +133,10 @@ class DataSource(val dsp: DataSourceParams)
         }
     }
 
-    new TrainingData(
-      users = usersRDD,
-      items = itemsRDD,
-      likeEvents = likeEventsRDD,
-      dislikeEvents = dislikeEventsRDD,
-      ratingEvents = ratingEventsRDD
-    )
+    ratingEventsRDD
   }
 
-  /* --------------------------------------- EVALUATION ------------------------------------*/
-
-  def getRatingsForEval(sc: SparkContext): RDD[RatingEvent] = {
-
-    // create a RDD of (entityID, User)
-    val usersRDD: RDD[(String, User)] = PEventStore.aggregateProperties(
-      appName = dsp.appName,
-      entityType = "user"
-    )(sc).map { case (entityId, properties) =>
-      val user = try {
-        User()
-      } catch {
-        case e: Exception => {
-          logger.error(s"Failed to get properties ${properties} of" +
-            s" user ${entityId}. Exception: ${e}.")
-          throw e
-        }
-      }
-      (entityId, user)
-    }.cache()
-
-    // create a RDD of (entityID, Item)
+  def getItems(sc: SparkContext): RDD[(String, Item)] = {
     val itemsRDD: RDD[(String, Item)] = PEventStore.aggregateProperties(
       appName = dsp.appName,
       entityType = "item"
@@ -210,39 +162,27 @@ class DataSource(val dsp: DataSourceParams)
       (entityId, item)
     }.cache()
 
-    val eventsRDD: RDD[Event] = PEventStore.find(
+    itemsRDD
+  }
+
+  def getUsers(sc: SparkContext): RDD[(String, User)] = {
+    val usersRDD: RDD[(String, User)] = PEventStore.aggregateProperties(
       appName = dsp.appName,
-      entityType = Some("user"),
-      eventNames = Some(List("like", "dislike", "want")),
-      // targetEntityType is optional field of an event.
-      targetEntityType = Some(Some("item")))(sc)
-      .cache()
-
-    val ratingEventsForEval: RDD[RatingEvent] = eventsRDD
-      .map { event =>
-        try {
-          val ratingValue: Double = event.event match {
-            case "like" => 1.0 
-            case "dislike" => -1.0
-            case "want" => 0.5
-            case _ => throw new Exception(s"Unexpected event ${event} is read.")
-          }
-          
-          RatingEvent(
-            user = event.entityId,
-            item = event.targetEntityId.get,
-            rating = ratingValue,
-            t = event.eventTime.getMillis
-          )
-        } catch {
-          case e: Exception =>
-            logger.error(s"Cannot convert ${event} to RatingEvent." +
-              s" Exception: ${e}.")
-            throw e
+      entityType = "user"
+    )(sc).map { case (entityId, properties) =>
+      val user = try {
+        User()
+      } catch {
+        case e: Exception => {
+          logger.error(s"Failed to get properties ${properties} of" +
+            s" user ${entityId}. Exception: ${e}.")
+          throw e
         }
-    }
+      }
+      (entityId, user)
+    }.cache()
 
-    ratingEventsForEval
+    usersRDD
   }
 
   /* k-fold evaluation implementation. Reads and selects data from datastore and returns sequence of (training, validation) data */
@@ -253,30 +193,37 @@ class DataSource(val dsp: DataSourceParams)
     val evalParams = dsp.evalParams.get
 
     val kFold = evalParams.kFold
+
+    val allEvents: RDD[Event] = getAllEvents(sc)
+
+    // Get all raitng events (Likes, Dislikes)
+    val ratingEvents: RDD[RatingEvent] = getRatingEvents(allEvents)
+    val users: RDD[(String, User)] = getUsers(sc)
+    val items: RDD[(String, Item)] = getItems(sc)
+
     //Annotate each rating in the raw data by an index
-    val ratings: RDD[(RatingEvent, Long)] = getRatingsForEval(sc).zipWithUniqueId
+    val ratings: RDD[(RatingEvent, Long)] = ratingEvents.zipWithUniqueId
     ratings.cache
 
     //In each fold, rating goes to either training or testing set based on modulus value.
-    (0 until kFold).map { idx => {
-      val trainingRatings = ratings.filter(_._2 % kFold != idx).map(_._1)
-      val testingRatings = ratings.filter(_._2 % kFold == idx).map(_._1)
+    (0 until kFold).map { index => {
+      val trainingRatings = ratings.filter(_._2 % kFold != index).map(_._1)
+      val testingRatings = ratings.filter(_._2 % kFold == index).map(_._1)
 
       // group ratings by user, one query is constructed for each user 
       val testingUsers: RDD[(String, Iterable[RatingEvent])] = testingRatings.groupBy(_.user)
 
-      (new TrainingData(null, null, null, null, trainingRatings),
+      ( new TrainingData(users, items, null, null, trainingRatings),
         new EmptyEvaluationInfo(),
         testingUsers.map {
           case (user, ratings) => (Query(user, evalParams.queryNum, None, None, None, None, None, None), ActualResult(ratings.toArray))
         }
       )
-    }}
+    }
+    }
   }
 
 }
-
-/* ----------------------------------- END EVALUATION ---------------------------------------------*/
 
 case class User()
 
@@ -297,12 +244,6 @@ case class LikeEvent(
 )
 
 case class DislikeEvent(
-  user: String, 
-  item: String, 
-  t: Long
-)
-
-case class WantEvent(
   user: String, 
   item: String, 
   t: Long

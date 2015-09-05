@@ -2,3 +2,5 @@ manifest.json
 target/
 pio.log
 /pio.sbt
+.idea/
+scripts/
