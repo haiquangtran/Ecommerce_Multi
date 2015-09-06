@@ -4,52 +4,63 @@ import io.prediction.controller.LServing
 import breeze.stats.mean
 import breeze.stats.meanAndVariance
 import breeze.stats.MeanAndVariance
+import io.prediction.controller.Params  
+
+case class ServingParams(filepath: String) extends Params
 
 class Serving
   extends LServing[Query, PredictedResult] {
 
   override
-  def serve(query: Query,
-    predictedResults: Seq[PredictedResult]): PredictedResult = {
-    
- //    val standard: Seq[Array[ItemScore]] = if (query.num == 1) {
- //    	//if query 1 item, don't standardize
- //    	predictedResults.map(_.itemScores)
- //    } else {
- //    	//Standardize the score before we combine results
- //    	val mvList: Seq[MeanAndVariance] = predictedResults.map { pr => 
- //    		meanAndVariance(pr.itemScores.map(_.score));
- //    	}
+  def serve(query: Query, predictedResults: Seq[PredictedResult]): PredictedResult = {
 
- //    	predictedResults.zipWithIndex
- //    		.map { case (pr, i) =>
- //    			pr.itemScores.map { is => 
- //    				println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
- //    				println(is);
- //    				println("YOLO IS THIS SHIT WORKING??");
-	// 				// standardize score (z-score)
-	// 	            // if standard deviation is 0 (when all items have the same score,
-	// 	            // meaning all items are ranked equally), return 0.
-	// 	            val score = if (mvList(i).stdDev == 0) {
-	// 	              0
-	// 	            } else {
-	// 	              (is.score - mvList(i).mean) / mvList(i).stdDev
-	// 	            }
- //            		ItemScore(is.item, score)
- //          		}
- //    		}
- //    }
+    val standard: Seq[Array[ItemScore]] = if (query.num == 1) {
+    	//if query 1 item, don't standardize
+    	predictedResults.map(_.itemScores)
+    } else {
+    	//Standardize the score before we combine results
+    	val mvList: Seq[MeanAndVariance] = predictedResults.map { pr => 
+    		meanAndVariance(pr.itemScores.map(_.score))
+    	}
 
-	// // sum the standardized score if same item
- //    val combined = standard.flatten // Array of ItemScore
- //      .groupBy(_.item) // groupBy item id
- //      .mapValues(itemScores => itemScores.map(_.score).reduce(_ + _))
- //      .toArray // array of (item id, score)
- //      .sortBy(_._2)(Ordering.Double.reverse)
- //      .take(query.num)
- //      .map { case (k,v) => ItemScore(k, v) }
+    	predictedResults.zipWithIndex
+    		.map { case (pr, i) =>
+    			pr.itemScores.map { is => 
+					// standardize score (z-score)
+		            // if standard deviation is 0 (when all items have the same score,
+		            // meaning all items are ranked equally), return 0.
+		            val score = if (mvList(i).stdDev == 0) {
+		              0
+		            } else {
+		              (is.score - mvList(i).mean) / mvList(i).stdDev
+		            }
 
- //    new PredictedResult(combined)
-     predictedResults.head
+            		ItemScore(
+            			is.name,
+            			is.item, 
+            			score,
+            			is.categories,
+            			is.price,
+            			is.likes,
+            			is.dislikes,
+            			is.wants,
+            			is.average_rating
+            		)
+          		}
+    		}
+    }
+
+    // Array of ItemScore
+    val itemArray = standard.flatten
+	// sum the standardized score if same item
+    val combined = itemArray.groupBy { case (item) => (item.name, item.item, item.categories, item.price, item.likes, item.dislikes, item.wants, item.average_rating) }
+    	.mapValues(itemScores => itemScores.map(_.score).reduce(_ - _)).toArray // array of ((name, item id, categories, price, likes, dislikes, wants, average_rating), score)
+    	.sortBy(_._2)(Ordering.Double.reverse)
+    	.take(query.num)
+    	.map { case (k,v) => ItemScore(k._1, k._2, v, k._3, k._4, k._5, k._6, k._7, k._8) }
+
+
+    new PredictedResult(combined)
   }
 }
+

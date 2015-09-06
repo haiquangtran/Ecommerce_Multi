@@ -13,8 +13,21 @@
       "params": {
         "appName": "wotm",
         "unseenOnly": true,
-        "seenEvents": ["like"],
+        "seenEvents": ["like", "dislike"],
         "similarEvents": ["like"],
+        "rank": 10,
+        "numIterations" : 20,
+        "lambda": 0.01,
+        "seed": 3
+      }
+    }, 
+    {
+      "name": "dislike_ecomm",
+      "params": {
+        "appName": "wotm",
+        "unseenOnly": true,
+        "seenEvents": ["like", "dislike"],
+        "similarEvents": ["dislike"],
         "rank": 10,
         "numIterations" : 20,
         "lambda": 0.01,
