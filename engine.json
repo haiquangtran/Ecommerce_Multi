@@ -15,9 +15,9 @@
         "unseenOnly": true,
         "seenEvents": ["like", "dislike"],
         "similarEvents": ["like"],
-        "rank": 10,
+        "rank": 3,
         "numIterations" : 20,
-        "lambda": 0.01,
+        "lambda": 0.09,
         "seed": 3
       }
     }, 
@@ -28,9 +28,9 @@
         "unseenOnly": true,
         "seenEvents": ["like", "dislike"],
         "similarEvents": ["dislike"],
-        "rank": 10,
+        "rank": 8,
         "numIterations" : 20,
-        "lambda": 0.01,
+        "lambda": 0.05,
         "seed": 3
       }
     }
