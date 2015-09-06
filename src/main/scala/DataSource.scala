@@ -102,7 +102,7 @@ class DataSource(val dsp: DataSourceParams)
             user = event.entityId,
             item = event.targetEntityId.get,
             // Treat as positive for dislike algorithm since we filter out highest scores at end
-            rating = 1.0, 
+            rating = 0.5, 
             t = event.eventTime.getMillis
           )
         } catch {
