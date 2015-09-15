@@ -15,30 +15,16 @@ class Serving
   def serve(query: Query, predictedResults: Seq[PredictedResult]): PredictedResult = {
 
     val standard: Seq[Array[ItemScore]] = if (query.num == 1) {
-    	//if query 1 item, don't standardize
+    	//if query 1 item
     	predictedResults.map(_.itemScores)
     } else {
-    	//Standardize the score before we combine results
-    	val mvList: Seq[MeanAndVariance] = predictedResults.map { pr => 
-    		meanAndVariance(pr.itemScores.map(_.score))
-    	}
-
     	predictedResults.zipWithIndex
     		.map { case (pr, i) =>
     			pr.itemScores.map { is => 
-					// standardize score (z-score)
-		            // if standard deviation is 0 (when all items have the same score,
-		            // meaning all items are ranked equally), return 0.
-		            val score = if (mvList(i).stdDev == 0) {
-		              0
-		            } else {
-		              (is.score - mvList(i).mean) / mvList(i).stdDev
-		            }
-
             		ItemScore(
             			is.name,
             			is.item, 
-            			score,
+            			is.score,
             			is.categories,
             			is.price,
             			is.likes,
@@ -58,7 +44,6 @@ class Serving
     	.sortBy(_._2)(Ordering.Double.reverse)
     	.take(query.num)
     	.map { case (k,v) => ItemScore(k._1, k._2, v, k._3, k._4, k._5, k._6, k._7, k._8) }
-
 
     new PredictedResult(combined)
   }

@@ -35,7 +35,6 @@ object ECommerceRecommendationEngine extends IEngineFactory {
     new Engine(
       classOf[DataSource],
       classOf[Preparator],
-      // Map("dislike_ecomm" -> classOf[ECommAlgorithm], "ecomm" -> classOf[DislikeALSAlgorithm]),
       Map("ecomm" -> classOf[ECommAlgorithm], "dislike_ecomm" -> classOf[DislikeALSAlgorithm]),
       classOf[Serving])
   }
