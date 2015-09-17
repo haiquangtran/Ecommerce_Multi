@@ -3,7 +3,7 @@
   "description": "Default settings",
   "engineFactory": "org.template.ecommercerecommendation.ECommerceRecommendationEngine",
   "datasource": {
-    "params" : {
+    "params": {
       "appName": "wotm"
     }
   },
@@ -13,24 +13,36 @@
       "params": {
         "appName": "wotm",
         "unseenOnly": true,
-        "seenEvents": ["like", "dislike"],
-        "similarEvents": ["like"],
+        "seenEvents": [
+          "like",
+          "dislike"
+        ],
+        "similarEvents": [
+          "like"
+        ],
         "rank": 3,
-        "numIterations" : 20,
-        "lambda": 0.09,
+        "numIterations": 20,
+        "lambda": 0.01,
+        "alpha": 1.0,
         "seed": 3
       }
-    }, 
+    },
     {
       "name": "dislike_ecomm",
       "params": {
         "appName": "wotm",
         "unseenOnly": true,
-        "seenEvents": ["like", "dislike"],
-        "similarEvents": ["dislike"],
+        "seenEvents": [
+          "like",
+          "dislike"
+        ],
+        "similarEvents": [
+          "dislike"
+        ],
         "rank": 8,
-        "numIterations" : 20,
+        "numIterations": 20,
         "lambda": 0.05,
+        "alpha": 0.1,
         "seed": 3
       }
     }

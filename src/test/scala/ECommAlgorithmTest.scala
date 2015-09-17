@@ -19,6 +19,7 @@ class ECommAlgorithmTest
     rank = 10,
     numIterations = 20,
     lambda = 0.01,
+    alpha = 1.0,
     seed = Some(3)
   )
   val algorithm = new ECommAlgorithm(algorithmParams)

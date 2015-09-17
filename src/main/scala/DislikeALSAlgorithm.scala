@@ -64,7 +64,7 @@ class DislikeALSAlgorithm(ap: ECommAlgorithmParams) extends ECommAlgorithm(ap) {
       iterations = ap.numIterations,
       lambda = ap.lambda,
       blocks = -1,
-      alpha = 1.0,
+      alpha = ap.alpha,
       seed = seed)
 
     val userFeatures = m.userFeatures.collectAsMap.toMap

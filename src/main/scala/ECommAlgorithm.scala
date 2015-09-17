@@ -26,6 +26,7 @@ case class ECommAlgorithmParams(
   rank: Int, // Number of latent features
   numIterations: Int,
   lambda: Double,   // Regularization parameter for MLlib ALS 
+  alpha: Double,    //Confidence 
   seed: Option[Long]  // Random seed for ALS. Specify a fixed value if want to have deterministic result
 ) extends Params
 
@@ -105,7 +106,7 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
       iterations = ap.numIterations,
       lambda = ap.lambda,
       blocks = -1,
-      alpha = 1.0,
+      alpha = ap.alpha,
       seed = seed)
 
     val userFeatures = m.userFeatures.collectAsMap.toMap

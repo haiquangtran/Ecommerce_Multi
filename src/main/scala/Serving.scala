@@ -14,7 +14,7 @@ class Serving
   override
   def serve(query: Query, predictedResults: Seq[PredictedResult]): PredictedResult = {
 
-    val standard: Seq[Array[ItemScore]] = if (query.num == 1) {
+    val results: Seq[Array[ItemScore]] = if (query.num == 1) {
     	//if query 1 item
     	predictedResults.map(_.itemScores)
     } else {
@@ -37,8 +37,8 @@ class Serving
     }
 
     // Array of ItemScore
-    val itemArray = standard.flatten
-	// sum the standardized score if same item
+    val itemArray = results.flatten
+	// minus the score if same item
     val combined = itemArray.groupBy { case (item) => (item.name, item.item, item.categories, item.price, item.likes, item.dislikes, item.wants, item.average_rating) }
     	.mapValues(itemScores => itemScores.map(_.score).reduce(_ - _)).toArray // array of ((name, item id, categories, price, likes, dislikes, wants, average_rating), score)
     	.sortBy(_._2)(Ordering.Double.reverse)
