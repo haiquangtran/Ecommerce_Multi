@@ -25,56 +25,36 @@ class DataSource(val dsp: DataSourceParams)
   def readTraining(sc: SparkContext): TrainingData = {
 
     // create a RDD of (entityID, User)
-    val usersRDD: RDD[(String, User)] = PEventStore.aggregateProperties(
-      appName = dsp.appName,
-      entityType = "user"
-    )(sc).map { case (entityId, properties) =>
-      val user = try {
-        User()
-      } catch {
-        case e: Exception => {
-          logger.error(s"Failed to get properties ${properties} of" +
-            s" user ${entityId}. Exception: ${e}.")
-          throw e
-        }
-      }
-      (entityId, user)
-    }.cache()
-
+    val usersRDD: RDD[(String, User)] = getUsers(sc)
     // create a RDD of (entityID, Item)
-    val itemsRDD: RDD[(String, Item)] = PEventStore.aggregateProperties(
-      appName = dsp.appName,
-      entityType = "item"
-    )(sc).map { case (entityId, properties) =>
-      val item = try {
-        // Assume categories is optional property of item.
-        Item(
-          categories = properties.getOpt[List[String]]("categories"),
-          name = properties.get[String]("name"),
-          price = properties.get[Double]("price"),
-          likes = properties.get[Int]("likes"),
-          dislikes = properties.get[Int]("dislikes"),
-          wants = properties.get[Int]("wants"),
-          average_rating = properties.get[Double]("average_rating")
-        )
-      } catch {
-        case e: Exception => {
-          logger.error(s"Failed to get properties ${properties} of" +
-            s" item ${entityId}. Exception: ${e}.")
-          throw e
-        }
-      }
-      (entityId, item)
-    }.cache()
+    val itemsRDD: RDD[(String, Item)] = getItems(sc)
+    val eventsRDD: RDD[Event] = getAllEvents(sc)
+    val likeEventsRDD: RDD[LikeEvent] = getLikeEvents(eventsRDD)
+    val dislikeEventsRDD: RDD[DislikeEvent] = getDislikeEvents(eventsRDD)
+    val ratingEventsRDD: RDD[RatingEvent] = getRatingEvents(eventsRDD)
 
+    new TrainingData(
+      users = usersRDD,
+      items = itemsRDD,
+      likeEvents = likeEventsRDD,
+      dislikeEvents = dislikeEventsRDD,
+      ratingEvents = ratingEventsRDD
+    )
+  }
+
+  def getAllEvents(sc: SparkContext): RDD[Event] = {
     val eventsRDD: RDD[Event] = PEventStore.find(
       appName = dsp.appName,
       entityType = Some("user"),
-      eventNames = Some(List("like", "dislike", "want")),
+      eventNames = Some(List("like", "dislike")),
       // targetEntityType is optional field of an event.
       targetEntityType = Some(Some("item")))(sc)
       .cache()
 
+      eventsRDD
+  }
+
+  def getLikeEvents(eventsRDD: RDD[Event]): RDD[LikeEvent] = {
     val likeEventsRDD: RDD[LikeEvent] = eventsRDD
       .filter { event => event.event == "like" }
       .map { event =>
@@ -92,6 +72,10 @@ class DataSource(val dsp: DataSourceParams)
         }
       }
 
+    likeEventsRDD
+  }
+
+  def getDislikeEvents(eventsRDD: RDD[Event]): RDD[DislikeEvent] = {
     val dislikeEventsRDD: RDD[DislikeEvent] = eventsRDD
       .filter { event => event.event == "dislike" }
       .map { event =>
@@ -109,30 +93,16 @@ class DataSource(val dsp: DataSourceParams)
         }
       }
 
-    val wantEventsRDD: RDD[WantEvent] = eventsRDD
-      .filter { event => event.event == "want" }
-      .map { event =>
-        try {
-          WantEvent(
-            user = event.entityId,
-            item = event.targetEntityId.get,
-            t = event.eventTime.getMillis
-          )
-        } catch {
-          case e: Exception =>
-            logger.error(s"Cannot convert ${event} to WantEvent." +
-              s" Exception: ${e}.")
-            throw e
-        }
-      }
+    dislikeEventsRDD
+  }
 
+  def getRatingEvents(eventsRDD: RDD[Event]): RDD[RatingEvent] = {
     val ratingEventsRDD: RDD[RatingEvent] = eventsRDD
       .map { event =>
         try {
           val ratingValue: Double = event.event match {
             case "like" => 1.0 
             case "dislike" => -1.0
-            case "want" => 0.5
             case _ => throw new Exception(s"Unexpected event ${event} is read.")
           }
           
@@ -150,14 +120,57 @@ class DataSource(val dsp: DataSourceParams)
         }
     }
 
-    new TrainingData(
-      users = usersRDD,
-      items = itemsRDD,
-      likeEvents = likeEventsRDD,
-      dislikeEvents = dislikeEventsRDD,
-      ratingEvents = ratingEventsRDD
-    )
+    ratingEventsRDD
   }
+
+  def getItems(sc: SparkContext): RDD[(String, Item)] = {
+    val itemsRDD: RDD[(String, Item)] = PEventStore.aggregateProperties(
+      appName = dsp.appName,
+      entityType = "item"
+    )(sc).map { case (entityId, properties) =>
+      val item = try {
+        // Assume categories is optional property of item.
+        Item(
+          categories = properties.getOpt[List[String]]("categories"),
+          name = properties.get[String]("name"),
+          price = properties.get[Double]("price"),
+          likes = properties.get[Int]("likes"),
+          dislikes = properties.get[Int]("dislikes"),
+          average_rating = properties.get[Double]("average_rating")
+        )
+      } catch {
+        case e: Exception => {
+          logger.error(s"Failed to get properties ${properties} of" +
+            s" item ${entityId}. Exception: ${e}.")
+          throw e
+        }
+      }
+      (entityId, item)
+    }.cache()
+
+    itemsRDD
+  }
+
+  def getUsers(sc: SparkContext): RDD[(String, User)] = {
+    val usersRDD: RDD[(String, User)] = PEventStore.aggregateProperties(
+      appName = dsp.appName,
+      entityType = "user"
+    )(sc).map { case (entityId, properties) =>
+      val user = try {
+        User()
+      } catch {
+        case e: Exception => {
+          logger.error(s"Failed to get properties ${properties} of" +
+            s" user ${entityId}. Exception: ${e}.")
+          throw e
+        }
+      }
+      (entityId, user)
+    }.cache()
+
+    usersRDD
+  }
+
 }
 
 case class User()
@@ -168,7 +181,6 @@ case class Item(
   price: Double, 
   likes: Int, 
   dislikes: Int,
-  wants: Int,
   average_rating: Double
 )
 
@@ -184,13 +196,7 @@ case class DislikeEvent(
   t: Long
 )
 
-case class WantEvent(
-  user: String, 
-  item: String, 
-  t: Long
-)
-
-// Account for the confidence values of different events in ALS such as likes, dislikes, wants
+// Account for the confidence values of different events in ALS such as likes, dislikes
 case class RatingEvent(
   user: String, 
   item: String, 

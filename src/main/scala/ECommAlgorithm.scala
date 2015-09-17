@@ -315,7 +315,6 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
         price = productModels.get(i).get.item.price,
         likes = productModels.get(i).get.item.likes,
         dislikes = productModels.get(i).get.item.dislikes,
-        wants = productModels.get(i).get.item.wants,
         average_rating = productModels.get(i).get.item.average_rating
       )
     }
