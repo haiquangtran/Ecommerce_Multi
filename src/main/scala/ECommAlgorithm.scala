@@ -463,7 +463,7 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
         // may customize here to further adjust score
         (i, s)
       }
-      .filter(_._2 > 0) // only keep items with score > 0
+      // .filter(_._2 > 0) // only keep items with score > 0
       .seq // convert back to sequential collection
 
     val ord = Ordering.by[(Int, Double), Double](_._2).reverse
@@ -536,7 +536,7 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
         // may customize here to further adjust score
         (i, s)
       }
-      .filter(_._2 > 0) // keep items with score > 0
+      // .filter(_._2 > 0) // keep items with score > 0
       .seq // convert back to sequential collection
 
     val ord = Ordering.by[(Int, Double), Double](_._2).reverse
