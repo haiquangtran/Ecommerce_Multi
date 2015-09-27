@@ -460,8 +460,11 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
       .map { case (i, pm) =>
         // NOTE: features must be defined, so can call .get
         val s = dotProduct(userFeature, pm.features.get)
+
+        val contentScore = getContentBasedScore(i, pm.item, query.categories)
+        println(" THE ITEM IS i: " + i + "AND THE SCORE IS : " + s + "   AND THE CONTENT SCORE IS: " + contentScore)
         // may customize here to further adjust score
-        (i, s)
+        (i, s + contentScore)
       }
       // .filter(_._2 > 0) // only keep items with score > 0
       .seq // convert back to sequential collection
@@ -635,6 +638,26 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
     } else {
       return wilsonConfidenceInterval;
     }
+  }
+
+  private
+  def getContentBasedScore(
+    i: Int,
+    item: Item,
+    categories: Option[Set[String]]
+  ): Double = {
+    val strength = 0.1;
+    // filter categories
+    categories.map { cat =>
+      item.categories.map { itemCat =>
+        // keep this item if has overlap categories with the query
+        if (!(itemCat.toSet.intersect(cat).isEmpty))  {
+          return strength
+        }
+      } // if it has no categories
+    }
+
+    return 0
   }
 
 }
