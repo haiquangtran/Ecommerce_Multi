@@ -461,8 +461,7 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
         // NOTE: features must be defined, so can call .get
         val s = dotProduct(userFeature, pm.features.get)
 
-        val contentScore = getContentBasedScore(i, pm.item, query.categories)
-        println(" THE ITEM IS i: " + i + "AND THE SCORE IS : " + s + "   AND THE CONTENT SCORE IS: " + contentScore)
+        val contentScore = getContentBasedScore(i, pm.item, query.preferences)
         // may customize here to further adjust score
         (i, s + contentScore)
       }
@@ -497,8 +496,12 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
         )
       }
       .map { case (i, pm) =>
-        // may customize here to further adjust score
-        (i, pm.count.toDouble)
+        val contentScore = getContentBasedScore(i, pm.item, query.preferences)
+        // Use content based filtering
+        (i, pm.count.toDouble + contentScore)
+
+        // Use popularity score
+        // (i, pm.count.toDouble)
       }
       .seq
 
@@ -536,8 +539,11 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
           // pm.features must be defined because of filter logic above
           cosine(rf, pm.features.get)
         }.reduce(_ + _)
+
+        val contentScore = getContentBasedScore(i, pm.item, query.preferences)
         // may customize here to further adjust score
-        (i, s)
+        (i, s + contentScore)
+        // (i, s)
       }
       // .filter(_._2 > 0) // keep items with score > 0
       .seq // convert back to sequential collection
@@ -640,19 +646,21 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
     }
   }
 
+
+  //TODO: do this in training phase
   private
   def getContentBasedScore(
     i: Int,
     item: Item,
-    categories: Option[Set[String]]
+    preferences: Option[Set[String]]
   ): Double = {
-    val strength = 0.1;
+    val weight = 0.1;
     // filter categories
-    categories.map { cat =>
+    preferences.map { preference =>
       item.categories.map { itemCat =>
         // keep this item if has overlap categories with the query
-        if (!(itemCat.toSet.intersect(cat).isEmpty))  {
-          return strength
+        if (!(itemCat.toSet.intersect(preference).isEmpty))  {
+          return weight
         }
       } // if it has no categories
     }

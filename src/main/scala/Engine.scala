@@ -9,6 +9,7 @@ case class Query(
   categories: Option[Set[String]],
   whiteList: Option[Set[String]],
   blackList: Option[Set[String]],
+  preferences: Option[Set[String]],
   minPrice: Option[Double],
   maxPrice: Option[Double],
   popular: Option[Boolean]

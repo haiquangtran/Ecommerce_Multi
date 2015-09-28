@@ -157,6 +157,7 @@ class DataSource(val dsp: DataSourceParams)
       entityType = "user"
     )(sc).map { case (entityId, properties) =>
       val user = try {
+
         User()
       } catch {
         case e: Exception => {
