@@ -654,12 +654,13 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
     item: Item,
     preferences: Option[Set[String]]
   ): Double = {
-    val weight = 0.1;
+    val weight = 0.3;
     // filter categories
     preferences.map { preference =>
       item.categories.map { itemCat =>
         // keep this item if has overlap categories with the query
         if (!(itemCat.toSet.intersect(preference).isEmpty))  {
+          // TODO: Aggregate mutiple properties
           return weight
         }
       } // if it has no categories
