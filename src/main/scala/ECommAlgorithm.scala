@@ -654,19 +654,23 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
     item: Item,
     preferences: Option[Set[String]]
   ): Double = {
-    val weight = 0.3;
+    val weight = 0.1
+
     // filter categories
     preferences.map { preference =>
       item.categories.map { itemCat =>
-        // keep this item if has overlap categories with the query
-        if (!(itemCat.toSet.intersect(preference).isEmpty))  {
-          // TODO: Aggregate mutiple properties
-          return weight
+        val preferredDishes = itemCat.toSet.intersect(preference)
+
+        // items with the users content preferences
+        if (!(preferredDishes.isEmpty))  {
+          // Content boost
+          return (preferredDishes.size * weight)
         }
-      } // if it has no categories
+      } 
     }
 
-    return 0
+    // No boost
+    return 0.0
   }
 
 }
