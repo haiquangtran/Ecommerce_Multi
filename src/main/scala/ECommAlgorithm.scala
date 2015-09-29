@@ -647,6 +647,7 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
   }
 
 
+  //TODO: figure out how to do negative preferences 
   //TODO: do this in training phase
   private
   def getContentBasedScore(
