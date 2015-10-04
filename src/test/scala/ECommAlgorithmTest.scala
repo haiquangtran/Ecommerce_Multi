@@ -7,6 +7,7 @@
 
 // import org.apache.spark.mllib.recommendation.{Rating => MLlibRating}
 
+// /* Tests the ALS algorithm for likes only. (Does not test the dislikes ALS algorithm) */
 // class ECommAlgorithmTest
 //   extends FlatSpec with EngineTestSparkContext with Matchers {
 
@@ -18,6 +19,7 @@
 //     rank = 10,
 //     numIterations = 20,
 //     lambda = 0.01,
+//     alpha = 1.0,
 //     seed = Some(3)
 //   )
 //   val algorithm = new ECommAlgorithm(algorithmParams)
@@ -29,9 +31,9 @@
 //   val users = Map("u0" -> User(), "u1" -> User())
 
 
-//   val i0 = Item(categories = Some(List("c0", "c1")), name = "dish1", price = 10.00, likes = 1, dislikes = 1, average_rating = 2.5)
-//   val i1 = Item(categories = None, name = "dish2", price = 15.00, likes = 3, dislikes = 2, average_rating = 2.5)
-//   val i2 = Item(categories = Some(List("c0", "c2")), name = "dish3", price = 20.00, likes = 1, dislikes = 0, average_rating = 2.5)
+//   val i0 = Item(categories = Some(List("c0", "c1")), name = "dish1", price = 10.00, likes = 1, dislikes = 1, wants = 0, average_rating = 2.5)
+//   val i1 = Item(categories = None, name = "dish2", price = 15.00, likes = 3, dislikes = 2, wants = 0, average_rating = 2.5)
+//   val i2 = Item(categories = Some(List("c0", "c2")), name = "dish3", price = 20.00, likes = 1, dislikes = 0, wants = 0, average_rating = 2.5)
 
 //   val items = Map(
 //     "i0" -> i0,
@@ -40,30 +42,17 @@
 //   )
 
 //   val like = Seq(
-//     LikeEvent("u0", "i0", 1000010),
-//     LikeEvent("u0", "i1", 1000020),
-//     LikeEvent("u0", "i1", 1000020),
-//     LikeEvent("u1", "i1", 1000030),
-//     LikeEvent("u1", "i2", 1000040)
+//     LikeEvent("u0", "i0", 1.0, 1000010),
+//     LikeEvent("u0", "i1", 1.0, 1000020),
+//     LikeEvent("u0", "i1", 1.0, 1000020),
+//     LikeEvent("u1", "i2", 1.0, 1000040)
 //   )
 
 //   val dislike = Seq(
-//     DislikeEvent("u0", "i0", 1000020),
-//     DislikeEvent("u0", "i1", 1000030),
-//     DislikeEvent("u1", "i1", 1000040)
-//   )
-
-//   val rating = Seq(
-//     // Likes
-//     RatingEvent("u0", "i0", 1.0, 1000010),
-//     RatingEvent("u0", "i1", 1.0, 1000020),
-//     RatingEvent("u0", "i1", 1.0, 1000020),
-//     RatingEvent("u1", "i1", 1.0, 1000030),
-//     RatingEvent("u1", "i2", 1.0, 1000040),
-//     // Dislikes
-//     RatingEvent("u0", "i0", -1.0, 1000020),
-//     RatingEvent("u0", "i1", -1.0, 1000030),
-//     RatingEvent("u1", "i1", -1.0, 1000040)
+//   	// Not getting read in
+//     DislikeEvent("u0", "i0", 0.5, 1000020),
+//     DislikeEvent("u0", "i1", 0.5, 1000030),
+//     DislikeEvent("u1", "i1", 0.5, 1000040)
 //   )
 
 
@@ -73,8 +62,7 @@
 //       users = sc.parallelize(users.toSeq),
 //       items = sc.parallelize(items.toSeq),
 //       likeEvents = sc.parallelize(like.toSeq),
-//       dislikeEvents = sc.parallelize(dislike.toSeq),
-//       ratingEvents = sc.parallelize(rating.toSeq)
+//       dislikeEvents = sc.parallelize(dislike.toSeq)
 //     )
 
 //     val mllibRatings = algorithm.genMLlibRating(
@@ -84,9 +72,8 @@
 //     )
 
 //     val expected = Seq(
-//       MLlibRating(0, 0, -1),
-//       MLlibRating(0, 1, -1),
-//       MLlibRating(1, 1, -1),
+//       MLlibRating(0, 0, 1),
+//       MLlibRating(0, 1, 1),
 //       MLlibRating(1, 2, 1)
 //     )
 
@@ -98,8 +85,7 @@
 //       users = sc.parallelize(users.toSeq),
 //       items = sc.parallelize(items.toSeq),
 //       likeEvents = sc.parallelize(like.toSeq),
-//       dislikeEvents = sc.parallelize(dislike.toSeq),
-//       ratingEvents = sc.parallelize(rating.toSeq)
+//       dislikeEvents = sc.parallelize(dislike.toSeq)
 //     )
 
 //     val popCount = algorithm.trainDefault(
@@ -108,7 +94,7 @@
 //       data = preparedData
 //     )
 
-//     val expected = Map(0 -> 1, 1 -> 3, 2 -> 1)
+//     val expected = Map(0 -> 1, 1 -> 2, 2 -> 1)
 
 //     popCount should contain theSameElementsAs expected
 //   }

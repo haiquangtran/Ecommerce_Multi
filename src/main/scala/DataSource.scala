@@ -31,15 +31,14 @@ class DataSource(val dsp: DataSourceParams)
     val eventsRDD: RDD[Event] = getAllEvents(sc)
     val likeEventsRDD: RDD[LikeEvent] = getLikeEvents(eventsRDD)
     val dislikeEventsRDD: RDD[DislikeEvent] = getDislikeEvents(eventsRDD)
-    val ratingEventsRDD: RDD[RatingEvent] = getRatingEvents(eventsRDD)
 
     new TrainingData(
       users = usersRDD,
       items = itemsRDD,
       likeEvents = likeEventsRDD,
-      dislikeEvents = dislikeEventsRDD,
-      ratingEvents = ratingEventsRDD
+      dislikeEvents = dislikeEventsRDD
     )
+
   }
 
   def getAllEvents(sc: SparkContext): RDD[Event] = {
@@ -62,6 +61,7 @@ class DataSource(val dsp: DataSourceParams)
           LikeEvent(
             user = event.entityId,
             item = event.targetEntityId.get,
+            rating = 1.0,
             t = event.eventTime.getMillis
           )
         } catch {
@@ -83,6 +83,8 @@ class DataSource(val dsp: DataSourceParams)
           DislikeEvent(
             user = event.entityId,
             item = event.targetEntityId.get,
+            // Treat as positive for dislike algorithm since we filter out highest scores at end
+            rating = 1.0, 
             t = event.eventTime.getMillis
           )
         } catch {
@@ -94,33 +96,6 @@ class DataSource(val dsp: DataSourceParams)
       }
 
     dislikeEventsRDD
-  }
-
-  def getRatingEvents(eventsRDD: RDD[Event]): RDD[RatingEvent] = {
-    val ratingEventsRDD: RDD[RatingEvent] = eventsRDD
-      .map { event =>
-        try {
-          val ratingValue: Double = event.event match {
-            case "like" => 1.0 
-            case "dislike" => -1.0
-            case _ => throw new Exception(s"Unexpected event ${event} is read.")
-          }
-          
-          RatingEvent(
-            user = event.entityId,
-            item = event.targetEntityId.get,
-            rating = ratingValue,
-            t = event.eventTime.getMillis
-          )
-        } catch {
-          case e: Exception =>
-            logger.error(s"Cannot convert ${event} to RatingEvent." +
-              s" Exception: ${e}.")
-            throw e
-        }
-    }
-
-    ratingEventsRDD
   }
 
   def getItems(sc: SparkContext): RDD[(String, Item)] = {
@@ -188,20 +163,14 @@ case class Item(
 case class LikeEvent(
   user: String, 
   item: String, 
+  rating: Double, 
   t: Long
 )
 
 case class DislikeEvent(
   user: String, 
-  item: String, 
-  t: Long
-)
-
-// Account for the confidence values of different events in ALS such as likes, dislikes
-case class RatingEvent(
-  user: String, 
-  item: String, 
-  rating: Double, 
+  item: String,
+  rating: Double,  
   t: Long
 )
 
@@ -209,8 +178,7 @@ class TrainingData(
   val users: RDD[(String, User)],
   val items: RDD[(String, Item)],
   val likeEvents: RDD[LikeEvent],
-  val dislikeEvents: RDD[DislikeEvent],
-  val ratingEvents: RDD[RatingEvent]
+  val dislikeEvents: RDD[DislikeEvent]
 ) extends Serializable {
   override def toString = {
     s"users: [${users.count()} (${users.take(2).toList}...)]" +

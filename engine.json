@@ -20,9 +20,29 @@
         "similarEvents": [
           "like"
         ],
-        "rank": 10,
+        "rank": 3,
         "numIterations": 20,
-        "lambda": 0.03,
+        "lambda": 0.01,
+        "alpha": 1.0,
+        "seed": 3
+      }
+    },
+    {
+      "name": "dislike_ecomm",
+      "params": {
+        "appName": "wotm",
+        "unseenOnly": true,
+        "seenEvents": [
+          "like",
+          "dislike"
+        ],
+        "similarEvents": [
+          "dislike"
+        ],
+        "rank": 8,
+        "numIterations": 20,
+        "lambda": 0.05,
+        "alpha": 0.1,
         "seed": 3
       }
     }
