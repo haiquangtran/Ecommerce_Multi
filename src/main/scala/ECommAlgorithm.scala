@@ -26,6 +26,7 @@ case class ECommAlgorithmParams(
   rank: Int, // Number of latent features
   numIterations: Int,
   lambda: Double,   // Regularization parameter for MLlib ALS 
+  alpha: Double,    //Confidence 
   seed: Option[Long]  // Random seed for ALS. Specify a fixed value if want to have deterministic result
 ) extends Params
 
@@ -68,8 +69,8 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
   @transient lazy val logger = Logger[this.type]
 
   def train(sc: SparkContext, data: PreparedData): ECommModel = {
-    require(!data.ratingEvents.take(1).isEmpty,
-      s"ratingEvents in PreparedData cannot be empty." +
+    require(!data.likeEvents.take(1).isEmpty,
+      s"likeEvents in PreparedData cannot be empty." +
       " Please check if DataSource generates TrainingData" +
       " and Preprator generates PreparedData correctly.")
     require(!data.users.take(1).isEmpty,
@@ -105,8 +106,9 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
       iterations = ap.numIterations,
       lambda = ap.lambda,
       blocks = -1,
-      alpha = 1.0,
-      seed = seed)
+      alpha = ap.alpha,
+      seed = seed
+    )
 
     val userFeatures = m.userFeatures.collectAsMap.toMap
 
@@ -146,7 +148,7 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
     itemStringIntMap: BiMap[String, Int],
     data: PreparedData): RDD[MLlibRating] = {
 
-    val mllibRatings = data.ratingEvents
+    val mllibRatings = data.likeEvents
       .map { r =>
         // Convert user and item String IDs to Int index for MLlib
         val uindex = userStringIntMap.getOrElse(r.user, -1)
@@ -167,8 +169,7 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
         (u != -1) && (i != -1)
       }
       .reduceByKey { case (v1 ,v2) =>
-        // if a user may rate same item with different value at different times,
-        // use the latest value for this case.
+        // use the latest value of the timestamp for same events on same items.
         val (rating1, t1) = v1
         val (rating2, t2) = v2
         // keep the latest value
