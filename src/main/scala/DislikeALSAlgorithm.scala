@@ -97,8 +97,8 @@ class DislikeALSAlgorithm(ap: ECommAlgorithmParams) extends ECommAlgorithm(ap) {
     )
   }
 
-  /** Generate MLlibRating from PreparedData.
-    * You may customize this function if use different events or different aggregation method
+  /** 
+    * Generate MLlibRating from PreparedData.
     */
   override
   def genMLlibRating(
@@ -199,6 +199,17 @@ class DislikeALSAlgorithm(ap: ECommAlgorithmParams) extends ECommAlgorithm(ap) {
     }
   
     new PredictedResult(itemScores)
+  }
+
+ override
+  def getContentBasedScore(
+    i: Int,
+    item: Item,
+    preferences: Option[Set[String]]
+    ): Double = {
+
+    // No boost
+    return 0.0
   }
 
 }

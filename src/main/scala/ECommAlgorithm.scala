@@ -461,9 +461,8 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
       .map { case (i, pm) =>
         // NOTE: features must be defined, so can call .get
         val s = dotProduct(userFeature, pm.features.get)
-
         val contentScore = getContentBasedScore(i, pm.item, query.preferences)
-        // may customize here to further adjust score
+        
         (i, s + contentScore)
       }
       // .filter(_._2 > 0) // only keep items with score > 0
@@ -502,7 +501,6 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
         (i, pm.count.toDouble + contentScore)
 
         // Use popularity score
-        // (i, pm.count.toDouble)
       }
       .seq
 
@@ -542,9 +540,8 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
         }.reduce(_ + _)
 
         val contentScore = getContentBasedScore(i, pm.item, query.preferences)
-        // may customize here to further adjust score
+
         (i, s + contentScore)
-        // (i, s)
       }
       // .filter(_._2 > 0) // keep items with score > 0
       .seq // convert back to sequential collection
@@ -647,9 +644,6 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
     }
   }
 
-
-  //TODO: figure out how to do negative preferences 
-  //TODO: do this in training phase
   private
   def getContentBasedScore(
     i: Int,
@@ -658,7 +652,7 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
   ): Double = {
     val weight = 0.1
 
-    // filter categories
+    // boost items with preferences
     preferences.map { preference =>
       item.categories.map { itemCat =>
         val preferredDishes = itemCat.toSet.intersect(preference)
