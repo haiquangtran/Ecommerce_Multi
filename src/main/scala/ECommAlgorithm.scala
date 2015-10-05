@@ -226,7 +226,9 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
     val userFeatures = model.userFeatures
     val productModels = model.productModels
 
-    // Determines if popular items are returned
+    // content preferences
+    val preferences: Option[Set[String]] = query.preferences
+    // determines if popular items are returned
     val isPopular: Option[Boolean] = query.popular
 
     // convert whiteList's string ID to integer index
@@ -260,6 +262,7 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
         userFeature = userFeature.get,
         productModels = productModels,
         query = query,
+        preferences = preferences,
         whiteList = whiteList,
         blackList = finalBlackList,
         minPrice = query.minPrice,
@@ -281,14 +284,13 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
           productModels.get(i).flatMap { pm => pm.features }
         }.flatten
 
-      val preferences: Option[Set[String]] = query.preferences
-
       if (!recentFeatures.isEmpty) {
         // Recommend similar items
         predictSimilar(
           recentFeatures = recentFeatures,
           productModels = productModels,
           query = query,
+          preferences = preferences, 
           whiteList = whiteList,
           blackList = finalBlackList,
           minPrice = query.minPrice,
@@ -299,6 +301,7 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
         predictContent(
           productModels = productModels,
           query = query,
+          preferences = preferences,
           whiteList = whiteList,
           blackList = finalBlackList,
           minPrice = query.minPrice,
@@ -453,6 +456,7 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
     userFeature: Array[Double],
     productModels: Map[Int, ProductModel],
     query: Query,
+    preferences: Option[Set[String]],
     whiteList: Option[Set[Int]],
     blackList: Set[Int],
     minPrice: Option[Double],
@@ -474,7 +478,7 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
       .map { case (i, pm) =>
         // NOTE: features must be defined, so can call .get
         val score = dotProduct(userFeature, pm.features.get)
-        val contentScore = getContentBasedScore(i, pm.item, query.preferences)
+        val contentScore = getContentBasedScore(i, pm.item, preferences)
         
         (i, score + contentScore)
       }
@@ -524,6 +528,7 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
   def predictContent(
     productModels: Map[Int, ProductModel],
     query: Query,
+    preferences: Option[Set[String]],
     whiteList: Option[Set[Int]],
     blackList: Set[Int],
     minPrice: Option[Double],
@@ -543,7 +548,7 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
       }
       .map { case (i, pm) =>
         // Use content based filtering
-        val contentScore = getContentBasedScore(i, pm.item, query.preferences)
+        val contentScore = getContentBasedScore(i, pm.item, preferences)
 
         (i, contentScore)
       }
@@ -560,6 +565,7 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
     recentFeatures: Vector[Array[Double]],
     productModels: Map[Int, ProductModel],
     query: Query,
+    preferences: Option[Set[String]],
     whiteList: Option[Set[Int]],
     blackList: Set[Int],
     minPrice: Option[Double],
@@ -584,7 +590,7 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
           cosine(rf, pm.features.get)
         }.reduce(_ + _)
 
-        val contentScore = getContentBasedScore(i, pm.item, query.preferences)
+        val contentScore = getContentBasedScore(i, pm.item, preferences)
 
         (i, score + contentScore)
       }
@@ -599,7 +605,6 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
 
   private
   def getTopN[T](s: Iterable[T], n: Int)(implicit ord: Ordering[T]): Seq[T] = {
-
     val q = PriorityQueue()
 
     for (x <- s) {

@@ -21,9 +21,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 /**
   * Use ALS to build item x feature matrix
   */
-  class DislikeALSAlgorithm(ap: ECommAlgorithmParams) extends ECommAlgorithm(ap) {
-
-  // @transient lazy val logger = Logger[this.type]
+class DislikeALSAlgorithm(ap: ECommAlgorithmParams) extends ECommAlgorithm(ap) {
 
   override
   def train(sc: SparkContext, data: PreparedData): ECommModel = {
@@ -39,6 +37,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
       s"items in PreparedData cannot be empty." +
       " Please check if DataSource generates TrainingData" +
       " and Preprator generates PreparedData correctly.")
+
     // create User and item's String ID to integer index BiMap
     val userStringIntMap = BiMap.stringInt(data.users.keys)
     val itemStringIntMap = BiMap.stringInt(data.items.keys)
@@ -47,7 +46,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
       userStringIntMap = userStringIntMap,
       itemStringIntMap = itemStringIntMap,
       data = data
-      )
+    )
 
     // MLLib ALS cannot handle empty training data.
     require(!mllibRatings.take(1).isEmpty,
@@ -66,7 +65,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
       blocks = -1,
       alpha = ap.alpha,
       seed = seed
-      )
+    )
 
     val userFeatures = m.userFeatures.collectAsMap.toMap
 
@@ -84,8 +83,9 @@ import scala.concurrent.ExecutionContext.Implicits.global
       val pm = ProductModel(
         item = item,
         features = features,
-          count = 0.0  // Wilson Confidence Interval       
-          )
+        count = 0.0  // Wilson Confidence Interval       
+      )
+
       (index, pm)
     }
 
@@ -95,61 +95,63 @@ import scala.concurrent.ExecutionContext.Implicits.global
       productModels = productModels,
       userStringIntMap = userStringIntMap,
       itemStringIntMap = itemStringIntMap
-      )
+    )
   }
 
   /** 
     * Generate MLlibRating from PreparedData.
     */
-    override
-    def genMLlibRating(
-      userStringIntMap: BiMap[String, Int],
-      itemStringIntMap: BiMap[String, Int],
-      data: PreparedData): RDD[MLlibRating] = {
+  override
+  def genMLlibRating(
+    userStringIntMap: BiMap[String, Int],
+    itemStringIntMap: BiMap[String, Int],
+    data: PreparedData): RDD[MLlibRating] = {
 
-      val mllibRatings = data.dislikeEvents
-      .map { r =>
-        // Convert user and item String IDs to Int index for MLlib
-        val uindex = userStringIntMap.getOrElse(r.user, -1)
-        val iindex = itemStringIntMap.getOrElse(r.item, -1)
+    val mllibRatings = data.dislikeEvents
+    .map { r =>
+      // Convert user and item String IDs to Int index for MLlib
+      val uindex = userStringIntMap.getOrElse(r.user, -1)
+      val iindex = itemStringIntMap.getOrElse(r.item, -1)
 
-        if (uindex == -1)
-        logger.info(s"Couldn't convert nonexistent user ID ${r.user}"
-          + " to Int index.")
+      if (uindex == -1)
+      logger.info(s"Couldn't convert nonexistent user ID ${r.user}"
+        + " to Int index.")
 
-        if (iindex == -1)
-        logger.info(s"Couldn't convert nonexistent item ID ${r.item}"
-          + " to Int index.")
+      if (iindex == -1)
+      logger.info(s"Couldn't convert nonexistent item ID ${r.item}"
+        + " to Int index.")
 
-        ((uindex, iindex), (r.rating, r.t))
-      }
-      .filter { case ((u, i), rating) =>
-        // keep events with valid user and item index
-        (u != -1) && (i != -1)
-      }
-      .reduceByKey { case (v1 ,v2) =>
-        // if a user may rate same item with different value at different times,
-        // use the latest value for this case.
-        val (rating1, t1) = v1
-        val (rating2, t2) = v2
-        // keep the latest value
-        if (t1 > t2) v1 else v2
-      }
-      .map { case ((u, i), (rating, t)) =>
-        // MLlibRating requires integer index for user and item
-        // takes into account like events and dislike event ratings here
-        MLlibRating(u, i, rating) 
-      }
-      .cache()
-
-      mllibRatings
+      ((uindex, iindex), (r.rating, r.t))
     }
+    .filter { case ((u, i), rating) =>
+      // keep events with valid user and item index
+      (u != -1) && (i != -1)
+    }
+    .reduceByKey { case (v1 ,v2) =>
+      // if a user may rate same item with different value at different times,
+      // use the latest value for this case.
+      val (rating1, t1) = v1
+      val (rating2, t2) = v2
+      // keep the latest value
+      if (t1 > t2) v1 else v2
+    }
+    .map { case ((u, i), (rating, t)) =>
+      // MLlibRating requires integer index for user and item
+      // takes into account like events and dislike event ratings here
+      MLlibRating(u, i, rating) 
+    }
+    .cache()
 
-    override
-    def predict(model: ECommModel, query: Query): PredictedResult = {
+    mllibRatings
+  }
 
-      val userFeatures = model.userFeatures
-      val productModels = model.productModels
+  override
+  def predict(model: ECommModel, query: Query): PredictedResult = {
+    val userFeatures = model.userFeatures
+    val productModels = model.productModels
+
+    // negative content preferences
+    val negativePreferences: Option[Set[String]] = query.negativePreferences
 
     // convert whiteList's string ID to integer index
     val whiteList: Option[Set[Int]] = query.whiteList.map( set =>
@@ -160,24 +162,36 @@ import scala.concurrent.ExecutionContext.Implicits.global
       // convert seen Items list from String ID to integer Index
       .flatMap(x => model.itemStringIntMap.get(x))
 
-      val userFeature: Option[Array[Double]] =
-      model.userStringIntMap.get(query.user).flatMap { userIndex =>
-        userFeatures.get(userIndex)
-      }
+    val userFeature: Option[Array[Double]] =
+    model.userStringIntMap.get(query.user).flatMap { userIndex =>
+      userFeatures.get(userIndex)
+    }
 
-      val topScores: Array[(Int, Double)] = 
-      if (userFeature.isDefined) {
+    val topScores: Array[(Int, Double)] = 
+    if (userFeature.isDefined) {
       // the user has feature vector
       predictKnownUser(
         userFeature = userFeature.get,
         productModels = productModels,
         query = query,
+        preferences = negativePreferences,  
         whiteList = whiteList,
         blackList = finalBlackList,
         minPrice = query.minPrice,
         maxPrice = query.maxPrice
         )
-      } else {
+    } else if (!negativePreferences.isEmpty) {
+      // content
+      predictContent(
+        productModels = productModels,
+        query = query,
+        preferences = negativePreferences,  
+        whiteList = whiteList,
+        blackList = finalBlackList,
+        minPrice = query.minPrice,
+        maxPrice = query.maxPrice
+        )
+    } else {
       // the user doesn't have feature vector.
       // For example, new user is created after model is trained.
       // logger.info(s"No userFeature found for user ${query.user}.")
@@ -196,23 +210,10 @@ import scala.concurrent.ExecutionContext.Implicits.global
         likes = productModels.get(i).get.item.likes,
         dislikes = productModels.get(i).get.item.dislikes,
         average_rating = productModels.get(i).get.item.average_rating
-        )
+      )
     }
-    
+
     new PredictedResult(itemScores)
-  }
-
-  override
-  def getContentBasedScore(
-    i: Int,
-    item: Item,
-    preferences: Option[Set[String]]
-    ): Double = {
-
-    //TODO: negative boost
-
-    // No boost
-    return 0.0
   }
 
 }
