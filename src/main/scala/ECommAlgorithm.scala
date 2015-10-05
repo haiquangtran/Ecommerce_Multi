@@ -246,7 +246,7 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
     val topScores: Array[(Int, Double)] = 
     if (isPopular.isDefined && isPopular.get) {
       // Recommend popular items
-      predictDefault(
+      predictPopular(
         productModels = productModels,
         query = query,
         whiteList = whiteList,
@@ -281,10 +281,22 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
           productModels.get(i).flatMap { pm => pm.features }
         }.flatten
 
-      if (recentFeatures.isEmpty) {
-        // Recommend popular items
-        logger.info(s"No features vector for recent items ${recentItems}.")
-        predictDefault(
+      val preferences: Option[Set[String]] = query.preferences
+
+      if (!recentFeatures.isEmpty) {
+        // Recommend similar items
+        predictSimilar(
+          recentFeatures = recentFeatures,
+          productModels = productModels,
+          query = query,
+          whiteList = whiteList,
+          blackList = finalBlackList,
+          minPrice = query.minPrice,
+          maxPrice = query.maxPrice
+        )
+      } else if (!preferences.isEmpty) {
+        // Recommend based on content
+        predictContent(
           productModels = productModels,
           query = query,
           whiteList = whiteList,
@@ -293,9 +305,10 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
           maxPrice = query.maxPrice
         )
       } else {
-        // Recommend similar items
-        predictSimilar(
-          recentFeatures = recentFeatures,
+        // This is the default if user has no information we can use
+        // Recommend popular items
+        logger.info(s"No features vector for recent items ${recentItems}.")
+        predictPopular(
           productModels = productModels,
           query = query,
           whiteList = whiteList,
@@ -460,10 +473,10 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
       }
       .map { case (i, pm) =>
         // NOTE: features must be defined, so can call .get
-        val s = dotProduct(userFeature, pm.features.get)
+        val score = dotProduct(userFeature, pm.features.get)
         val contentScore = getContentBasedScore(i, pm.item, query.preferences)
         
-        (i, s + contentScore)
+        (i, score + contentScore)
       }
       // .filter(_._2 > 0) // only keep items with score > 0
       .seq // convert back to sequential collection
@@ -474,8 +487,8 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
     topScores
   }
 
-  /** Default prediction when know nothing about the user */
-  def predictDefault(
+  /** Popular prediction when know nothing about the user */
+  def predictPopular(
     productModels: Map[Int, ProductModel],
     query: Query,
     whiteList: Option[Set[Int]],
@@ -496,11 +509,43 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
         )
       }
       .map { case (i, pm) =>
-        val contentScore = getContentBasedScore(i, pm.item, query.preferences)
-        // Use content based filtering
-        (i, pm.count.toDouble + contentScore)
-
         // Use popularity score
+        (i, pm.count.toDouble)
+      }
+      .seq
+
+    val ord = Ordering.by[(Int, Double), Double](_._2).reverse
+    val topScores = getTopN(indexScores, query.num)(ord).toArray
+
+    topScores
+  }
+
+  /** Predict using content attributes */
+  def predictContent(
+    productModels: Map[Int, ProductModel],
+    query: Query,
+    whiteList: Option[Set[Int]],
+    blackList: Set[Int],
+    minPrice: Option[Double],
+    maxPrice: Option[Double]
+  ): Array[(Int, Double)] = {
+    val indexScores: Map[Int, Double] = productModels.par // convert back to sequential collection
+      .filter { case (i, pm) =>
+        isCandidateItem(
+          i = i,
+          item = pm.item,
+          categories = query.categories,
+          whiteList = whiteList,
+          blackList = blackList,
+          minPrice = query.minPrice,
+          maxPrice = query.maxPrice
+        )
+      }
+      .map { case (i, pm) =>
+        // Use content based filtering
+        val contentScore = getContentBasedScore(i, pm.item, query.preferences)
+
+        (i, contentScore)
       }
       .seq
 
@@ -534,14 +579,14 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
         )
       }
       .map { case (i, pm) =>
-        val s = recentFeatures.map{ rf =>
+        val score = recentFeatures.map{ rf =>
           // pm.features must be defined because of filter logic above
           cosine(rf, pm.features.get)
         }.reduce(_ + _)
 
         val contentScore = getContentBasedScore(i, pm.item, query.preferences)
 
-        (i, s + contentScore)
+        (i, score + contentScore)
       }
       // .filter(_._2 > 0) // keep items with score > 0
       .seq // convert back to sequential collection
@@ -576,12 +621,13 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
   def dotProduct(v1: Array[Double], v2: Array[Double]): Double = {
     val size = v1.size
     var i = 0
-    var d: Double = 0
+    var result: Double = 0
     while (i < size) {
-      d += v1(i) * v2(i)
+      result += v1(i) * v2(i)
       i += 1
     }
-    d
+
+    result
   }
 
   private
@@ -625,7 +671,7 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
     }.getOrElse(true)
   }
 
-  // Used for popularity score
+  /* Wilsons Confidence Interval: used for popularity score.*/
   private
   def popularScore(
     item: Item
@@ -644,7 +690,6 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
     }
   }
 
-  private
   def getContentBasedScore(
     i: Int,
     item: Item,
@@ -658,13 +703,12 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
         val preferredDishes = itemCat.toSet.intersect(preference)
 
         // items with the users content preferences
-        if (!(preferredDishes.isEmpty))  {
+        if (!(preferredDishes.isEmpty)) {
           // Content boost
           return (preferredDishes.size * weight)
         }
       } 
     }
-
     // No boost
     return 0.0
   }

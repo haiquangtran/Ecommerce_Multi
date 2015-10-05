@@ -21,7 +21,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 /**
   * Use ALS to build item x feature matrix
   */
-class DislikeALSAlgorithm(ap: ECommAlgorithmParams) extends ECommAlgorithm(ap) {
+  class DislikeALSAlgorithm(ap: ECommAlgorithmParams) extends ECommAlgorithm(ap) {
 
   // @transient lazy val logger = Logger[this.type]
 
@@ -47,7 +47,7 @@ class DislikeALSAlgorithm(ap: ECommAlgorithmParams) extends ECommAlgorithm(ap) {
       userStringIntMap = userStringIntMap,
       itemStringIntMap = itemStringIntMap,
       data = data
-    )
+      )
 
     // MLLib ALS cannot handle empty training data.
     require(!mllibRatings.take(1).isEmpty,
@@ -65,7 +65,8 @@ class DislikeALSAlgorithm(ap: ECommAlgorithmParams) extends ECommAlgorithm(ap) {
       lambda = ap.lambda,
       blocks = -1,
       alpha = ap.alpha,
-      seed = seed)
+      seed = seed
+      )
 
     val userFeatures = m.userFeatures.collectAsMap.toMap
 
@@ -76,17 +77,17 @@ class DislikeALSAlgorithm(ap: ECommAlgorithmParams) extends ECommAlgorithm(ap) {
 
     // join item with the trained productFeatures
     val productFeatures: Map[Int, (Item, Option[Array[Double]])] =
-      items.leftOuterJoin(m.productFeatures).collectAsMap.toMap
+    items.leftOuterJoin(m.productFeatures).collectAsMap.toMap
 
     val productModels: Map[Int, ProductModel] = productFeatures
-      .map { case (index, (item, features)) =>
-        val pm = ProductModel(
-          item = item,
-          features = features,
+    .map { case (index, (item, features)) =>
+      val pm = ProductModel(
+        item = item,
+        features = features,
           count = 0.0  // Wilson Confidence Interval       
-        )
-        (index, pm)
-      }
+          )
+      (index, pm)
+    }
 
     new ECommModel(
       rank = m.rank,
@@ -94,31 +95,31 @@ class DislikeALSAlgorithm(ap: ECommAlgorithmParams) extends ECommAlgorithm(ap) {
       productModels = productModels,
       userStringIntMap = userStringIntMap,
       itemStringIntMap = itemStringIntMap
-    )
+      )
   }
 
   /** 
     * Generate MLlibRating from PreparedData.
     */
-  override
-  def genMLlibRating(
-    userStringIntMap: BiMap[String, Int],
-    itemStringIntMap: BiMap[String, Int],
-    data: PreparedData): RDD[MLlibRating] = {
+    override
+    def genMLlibRating(
+      userStringIntMap: BiMap[String, Int],
+      itemStringIntMap: BiMap[String, Int],
+      data: PreparedData): RDD[MLlibRating] = {
 
-    val mllibRatings = data.dislikeEvents
+      val mllibRatings = data.dislikeEvents
       .map { r =>
         // Convert user and item String IDs to Int index for MLlib
         val uindex = userStringIntMap.getOrElse(r.user, -1)
         val iindex = itemStringIntMap.getOrElse(r.item, -1)
 
         if (uindex == -1)
-          logger.info(s"Couldn't convert nonexistent user ID ${r.user}"
-            + " to Int index.")
+        logger.info(s"Couldn't convert nonexistent user ID ${r.user}"
+          + " to Int index.")
 
         if (iindex == -1)
-          logger.info(s"Couldn't convert nonexistent item ID ${r.item}"
-            + " to Int index.")
+        logger.info(s"Couldn't convert nonexistent item ID ${r.item}"
+          + " to Int index.")
 
         ((uindex, iindex), (r.rating, r.t))
       }
@@ -141,31 +142,31 @@ class DislikeALSAlgorithm(ap: ECommAlgorithmParams) extends ECommAlgorithm(ap) {
       }
       .cache()
 
-    mllibRatings
-  }
+      mllibRatings
+    }
 
-  override
-  def predict(model: ECommModel, query: Query): PredictedResult = {
+    override
+    def predict(model: ECommModel, query: Query): PredictedResult = {
 
-    val userFeatures = model.userFeatures
-    val productModels = model.productModels
+      val userFeatures = model.userFeatures
+      val productModels = model.productModels
 
     // convert whiteList's string ID to integer index
     val whiteList: Option[Set[Int]] = query.whiteList.map( set =>
       set.flatMap(model.itemStringIntMap.get(_))
-    )
+      )
 
     val finalBlackList: Set[Int] = genBlackList(query = query)
       // convert seen Items list from String ID to integer Index
       .flatMap(x => model.itemStringIntMap.get(x))
 
-    val userFeature: Option[Array[Double]] =
+      val userFeature: Option[Array[Double]] =
       model.userStringIntMap.get(query.user).flatMap { userIndex =>
         userFeatures.get(userIndex)
       }
 
-    val topScores: Array[(Int, Double)] = 
-    if (userFeature.isDefined) {
+      val topScores: Array[(Int, Double)] = 
+      if (userFeature.isDefined) {
       // the user has feature vector
       predictKnownUser(
         userFeature = userFeature.get,
@@ -175,8 +176,8 @@ class DislikeALSAlgorithm(ap: ECommAlgorithmParams) extends ECommAlgorithm(ap) {
         blackList = finalBlackList,
         minPrice = query.minPrice,
         maxPrice = query.maxPrice
-      )
-    } else {
+        )
+      } else {
       // the user doesn't have feature vector.
       // For example, new user is created after model is trained.
       // logger.info(s"No userFeature found for user ${query.user}.")
@@ -195,18 +196,20 @@ class DislikeALSAlgorithm(ap: ECommAlgorithmParams) extends ECommAlgorithm(ap) {
         likes = productModels.get(i).get.item.likes,
         dislikes = productModels.get(i).get.item.dislikes,
         average_rating = productModels.get(i).get.item.average_rating
-      )
+        )
     }
-  
+    
     new PredictedResult(itemScores)
   }
 
- override
+  override
   def getContentBasedScore(
     i: Int,
     item: Item,
     preferences: Option[Set[String]]
     ): Double = {
+
+    //TODO: negative boost
 
     // No boost
     return 0.0
