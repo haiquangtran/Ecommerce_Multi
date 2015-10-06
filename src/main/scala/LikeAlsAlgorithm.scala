@@ -18,7 +18,7 @@ import scala.collection.mutable.PriorityQueue
 import scala.concurrent.duration.Duration
 import scala.concurrent.ExecutionContext.Implicits.global
 
-case class ECommAlgorithmParams(
+case class WotmParams(
   appName: String,
   unseenOnly: Boolean,
   seenEvents: List[String],
@@ -38,7 +38,7 @@ case class ProductModel(
   count: Double // popular count for default score
 )
 
-class ECommModel(
+class WotmModel(
   val rank: Int,
   val userFeatures: Map[Int, Array[Double]],
   val productModels: Map[Int, ProductModel],
@@ -64,12 +64,12 @@ class ECommModel(
 /**
   * Use ALS to build item x feature matrix
   */
-class ECommAlgorithm(val ap: ECommAlgorithmParams)
-  extends P2LAlgorithm[PreparedData, ECommModel, Query, PredictedResult] {
+class LikeAlsAlgorithm(val ap: WotmParams)
+  extends P2LAlgorithm[PreparedData, WotmModel, Query, PredictedResult] {
 
   @transient lazy val logger = Logger[this.type]
 
-  def train(sc: SparkContext, data: PreparedData): ECommModel = {
+  def train(sc: SparkContext, data: PreparedData): WotmModel = {
     require(!data.likeEvents.take(1).isEmpty,
       s"likeEvents in PreparedData cannot be empty." +
       " Please check if DataSource generates TrainingData" +
@@ -132,7 +132,7 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
         (index, pm)
       }
 
-    new ECommModel(
+    new WotmModel(
       rank = m.rank,
       userFeatures = userFeatures,
       productModels = productModels,
@@ -222,13 +222,13 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
     likeCountsRDD.collectAsMap.toMap
   }
 
-  def predict(model: ECommModel, query: Query): PredictedResult = {
+  def predict(model: WotmModel, query: Query): PredictedResult = {
 
     val userFeatures = model.userFeatures
     val productModels = model.productModels
 
     // content preferences
-    val preferences: Option[Set[String]] = query.preferences
+    val preferences: Option[Set[String]] = query.positivePreferences
     // determines if popular items are returned
     val isPopular: Option[Boolean] = query.popular
 

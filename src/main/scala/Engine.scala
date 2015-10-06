@@ -6,10 +6,11 @@ import io.prediction.controller.Engine
 case class Query(
   user: String,
   num: Int,
+  // categories are the content attributes
   categories: Option[Set[String]],
   whiteList: Option[Set[String]],
   blackList: Option[Set[String]],
-  preferences: Option[Set[String]],
+  positivePreferences: Option[Set[String]],
   negativePreferences: Option[Set[String]],
   minPrice: Option[Double],
   maxPrice: Option[Double],
@@ -31,12 +32,12 @@ case class ItemScore(
   average_rating: Double
 ) extends Serializable
 
-object ECommerceRecommendationEngine extends IEngineFactory {
+object WotmRecommendationEngine extends IEngineFactory {
   def apply() = {
     new Engine(
       classOf[DataSource],
       classOf[Preparator],
-      Map("ecomm" -> classOf[ECommAlgorithm], "dislike_ecomm" -> classOf[DislikeALSAlgorithm]),
+      Map("like_als" -> classOf[LikeAlsAlgorithm], "dislike_als" -> classOf[DislikeAlsAlgorithm]),
       classOf[Serving])
   }
 }

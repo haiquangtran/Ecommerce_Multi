@@ -21,10 +21,10 @@ import scala.concurrent.ExecutionContext.Implicits.global
 /**
   * Use ALS to build item x feature matrix
   */
-class DislikeALSAlgorithm(ap: ECommAlgorithmParams) extends ECommAlgorithm(ap) {
+class DislikeAlsAlgorithm(ap: WotmParams) extends LikeAlsAlgorithm(ap) {
 
   override
-  def train(sc: SparkContext, data: PreparedData): ECommModel = {
+  def train(sc: SparkContext, data: PreparedData): WotmModel = {
     require(!data.dislikeEvents.take(1).isEmpty,
       s"dislikeEvents in PreparedData cannot be empty." +
       " Please check if DataSource generates TrainingData" +
@@ -89,7 +89,7 @@ class DislikeALSAlgorithm(ap: ECommAlgorithmParams) extends ECommAlgorithm(ap) {
       (index, pm)
     }
 
-    new ECommModel(
+    new WotmModel(
       rank = m.rank,
       userFeatures = userFeatures,
       productModels = productModels,
@@ -146,7 +146,7 @@ class DislikeALSAlgorithm(ap: ECommAlgorithmParams) extends ECommAlgorithm(ap) {
   }
 
   override
-  def predict(model: ECommModel, query: Query): PredictedResult = {
+  def predict(model: WotmModel, query: Query): PredictedResult = {
     val userFeatures = model.userFeatures
     val productModels = model.productModels
 

@@ -1,7 +1,7 @@
 {
   "id": "default",
   "description": "Default settings",
-  "engineFactory": "org.template.ecommercerecommendation.ECommerceRecommendationEngine",
+  "engineFactory": "org.template.ecommercerecommendation.WotmRecommendationEngine",
   "datasource": {
     "params": {
       "appName": "wotm"
@@ -9,7 +9,7 @@
   },
   "algorithms": [
     {
-      "name": "ecomm",
+      "name": "like_als",
       "params": {
         "appName": "wotm",
         "unseenOnly": true,
@@ -29,7 +29,7 @@
       }
     },
     {
-      "name": "dislike_ecomm",
+      "name": "dislike_als",
       "params": {
         "appName": "wotm",
         "unseenOnly": true,
