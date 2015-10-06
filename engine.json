@@ -3,7 +3,7 @@
   "description": "Default settings",
   "engineFactory": "org.template.ecommercerecommendation.ECommerceRecommendationEngine",
   "datasource": {
-    "params" : {
+    "params": {
       "appName": "wotm"
     }
   },
@@ -13,11 +13,22 @@
       "params": {
         "appName": "wotm",
         "unseenOnly": true,
+<<<<<<< HEAD
         "seenEvents": ["like", "dislike"],
         "similarEvents": ["like"],
         "rank": 7,
         "numIterations" : 20,
         "lambda": 0.08,
+        "seenEvents": [
+          "like",
+          "dislike"
+        ],
+        "similarEvents": [
+          "like"
+        ],
+        "rank": 10,
+        "numIterations": 20,
+        "lambda": 0.03,
         "seed": 3
       }
     }
