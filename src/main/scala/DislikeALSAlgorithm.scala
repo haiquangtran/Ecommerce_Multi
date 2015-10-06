@@ -181,7 +181,7 @@ class DislikeALSAlgorithm(ap: ECommAlgorithmParams) extends ECommAlgorithm(ap) {
         maxPrice = query.maxPrice
         )
     } else if (!negativePreferences.isEmpty) {
-      // content
+      // recommendations based on content
       predictContent(
         productModels = productModels,
         query = query,

@@ -26,8 +26,9 @@ case class ECommAlgorithmParams(
   rank: Int, // Number of latent features
   numIterations: Int,
   lambda: Double,   // Regularization parameter for MLlib ALS 
-  alpha: Double,    //Confidence 
-  seed: Option[Long]  // Random seed for ALS. Specify a fixed value if want to have deterministic result
+  alpha: Double,    // Confidence 
+  seed: Option[Long],  // Random seed for ALS. Specify a fixed value if want to have deterministic result
+  preferenceWeight: Double // Weights for content of preferences
 ) extends Params
 
 
@@ -700,7 +701,7 @@ class ECommAlgorithm(val ap: ECommAlgorithmParams)
     item: Item,
     preferences: Option[Set[String]]
   ): Double = {
-    val weight = 0.1
+    val weight = ap.preferenceWeight
 
     // boost items with preferences
     preferences.map { preference =>

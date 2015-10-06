@@ -24,7 +24,8 @@
         "numIterations": 20,
         "lambda": 0.01,
         "alpha": 1.0,
-        "seed": 3
+        "seed": 3,
+        "preferenceWeight": 0.1
       }
     },
     {
@@ -43,7 +44,8 @@
         "numIterations": 20,
         "lambda": 0.05,
         "alpha": 0.1,
-        "seed": 3
+        "seed": 3,
+        "preferenceWeight": 0.2
       }
     }
   ]
