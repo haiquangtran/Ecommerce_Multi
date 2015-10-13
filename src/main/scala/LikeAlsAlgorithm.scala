@@ -257,7 +257,7 @@ class LikeAlsAlgorithm(val ap: WotmParams)
         minPrice = query.minPrice,
         maxPrice = query.maxPrice
       )
-    } else if (userFeature.isDefined) {
+    } else if (userFeature.isDefined && query.items.isEmpty) {
       // the user has feature vector
       predictKnownUser(
         userFeature = userFeature.get,
@@ -275,7 +275,12 @@ class LikeAlsAlgorithm(val ap: WotmParams)
       logger.info(s"No userFeature found for user ${query.user}.")
 
       // check if the user has recent events on some items
-      val recentItems: Set[String] = getRecentItems(query)
+      val recentItems: Set[String] = 
+      if (!query.items.isEmpty && query.items.isDefined) { 
+        query.items.get
+      } else { 
+        getRecentItems(query)
+      }
       val recentList: Set[Int] = recentItems.flatMap (x =>
         model.itemStringIntMap.get(x))
 

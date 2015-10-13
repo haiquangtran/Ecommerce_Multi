@@ -6,6 +6,7 @@ import io.prediction.controller.Engine
 case class Query(
   user: String,
   num: Int,
+  items: Option[Set[String]],
   // categories are the content attributes
   categories: Option[Set[String]],
   whiteList: Option[Set[String]],

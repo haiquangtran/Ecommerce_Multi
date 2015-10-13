@@ -119,7 +119,8 @@ class LikeAlsAlgorithmTest
         maxPrice = None,
         popular = None,
         positivePreferences = None,
-        negativePreferences = None
+        negativePreferences = None,
+        items = None
       ),
       preferences = None,
       whiteList = None,
@@ -150,7 +151,8 @@ class LikeAlsAlgorithmTest
         negativePreferences = None,
         minPrice = None,
         maxPrice = None,
-        popular = None
+        popular = None,
+        items = None
       ),
       whiteList = None,
       blackList = Set(),
@@ -182,7 +184,8 @@ class LikeAlsAlgorithmTest
         maxPrice = None,
         popular = None,
         positivePreferences = None,
-        negativePreferences = None
+        negativePreferences = None,
+        items = None
       ),
       preferences = None,
       whiteList = None,
