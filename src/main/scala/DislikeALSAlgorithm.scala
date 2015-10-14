@@ -152,6 +152,8 @@ class DislikeAlsAlgorithm(ap: WotmParams) extends LikeAlsAlgorithm(ap) {
 
     // negative content preferences
     val negativePreferences: Option[Set[String]] = query.negativePreferences
+    // determines if popular items are returned
+    val isPopular: Option[Boolean] = query.popular
 
     // convert whiteList's string ID to integer index
     val whiteList: Option[Set[Int]] = query.whiteList.map( set =>
@@ -168,7 +170,7 @@ class DislikeAlsAlgorithm(ap: WotmParams) extends LikeAlsAlgorithm(ap) {
     }
 
     val topScores: Array[(Int, Double)] = 
-    if (userFeature.isDefined) {
+    if (userFeature.isDefined && !isPopular.isDefined) {
       // the user has feature vector
       predictKnownUser(
         userFeature = userFeature.get,
