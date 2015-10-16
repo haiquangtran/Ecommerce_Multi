@@ -20,10 +20,10 @@
         "similarEvents": [
           "like"
         ],
-        "rank": 3,
-        "numIterations": 20,
-        "lambda": 0.01,
-        "alpha": 1.0,
+        "rank": 4,
+	"numIterations": 20,
+        "lambda": 0.02,
+        "alpha": 0.3,
         "seed": 3,
         "preferenceWeight": 0.1
       }
@@ -40,12 +40,12 @@
         "similarEvents": [
           "dislike"
         ],
-        "rank": 8,
+        "rank": 6,
         "numIterations": 20,
-        "lambda": 0.05,
-        "alpha": 0.1,
+        "lambda": 0.04,
+        "alpha": 0.3,
         "seed": 3,
-        "preferenceWeight": 0.2
+        "preferenceWeight": 0.3
       }
     }
   ]
