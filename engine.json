@@ -13,7 +13,6 @@
       "params": {
         "appName": "wotm",
         "unseenOnly": true,
-<<<<<<< HEAD
         "seenEvents": ["like", "dislike"],
         "similarEvents": ["like"],
         "rank": 7,
