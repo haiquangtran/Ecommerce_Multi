@@ -488,7 +488,7 @@ class LikeAlsAlgorithm(val ap: WotmParams)
         
         (i, score + contentScore)
       }
-      // .filter(_._2 > 0) // only keep items with score > 0
+      .filter(_._2 > 0) // only keep items with score > 0
       .seq // convert back to sequential collection
 
     val ord = Ordering.by[(Int, Double), Double](_._2).reverse
@@ -600,7 +600,7 @@ class LikeAlsAlgorithm(val ap: WotmParams)
 
         (i, score + contentScore)
       }
-      // .filter(_._2 > 0) // keep items with score > 0
+      .filter(_._2 > 0) // keep items with score > 0
       .seq // convert back to sequential collection
 
     val ord = Ordering.by[(Int, Double), Double](_._2).reverse
