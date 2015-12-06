@@ -7,7 +7,7 @@
       "appName": "wotm"
     }
   },
-  "algorithms": [
+   "algorithms": [
     {
       "name": "ecomm",
       "params": {
@@ -15,18 +15,8 @@
         "unseenOnly": true,
         "seenEvents": ["like", "dislike"],
         "similarEvents": ["like"],
-        "rank": 7,
-        "numIterations" : 20,
-        "lambda": 0.08,
-        "seenEvents": [
-          "like",
-          "dislike"
-        ],
-        "similarEvents": [
-          "like"
-        ],
         "rank": 10,
-        "numIterations": 20,
+        "numIterations" : 20,
         "lambda": 0.03,
         "seed": 3
       }
